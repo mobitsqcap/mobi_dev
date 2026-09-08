@@ -1,0 +1,47 @@
+_schema-version: 3.3.0
+ID: gl_vlookup
+description: GL V Lookup Fiori Application
+version: 0.0.1
+
+parameters:
+  enable-parallel-deployments: true
+  deploy_mode: html5-repo
+
+modules:
+
+  # HTML5 Application
+  - name: glvlookup
+    type: html5
+    path: .
+    build-parameters:
+      build-result: dist
+      builder: custom
+      commands:
+        - npm install
+        - npm run build:cf
+      supported-platforms: []
+
+  # Upload application to HTML5 Apps Repository
+  - name: glvlookup-app-content
+    type: com.sap.application.content
+    path: .
+    requires:
+      - name: mobi-cap-html5-host
+        parameters:
+          content-target: true
+
+    build-parameters:
+      build-result: resources
+      requires:
+        - name: glvlookup
+          artifacts:
+            - glvlookup.zip
+          target-path: resources/
+
+resources:
+
+  # Existing HTML5 Apps Repository Host
+  - name: mobi-cap-html5-host
+    type: org.cloudfoundry.existing-service
+    parameters:
+      service-name: mobi-cap-html5-host-Mobi_dev_space

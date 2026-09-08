@@ -1,0 +1,318 @@
+_schema-version: 3.3.0
+ID: mobi_dev_cap
+description: A simple CAP project.
+version: 1.0.0
+
+modules:
+
+  # =========================
+  # CAP SERVICE
+  # =========================
+  - name: mobi_dev_cap-srv
+    type: nodejs
+    path: .
+
+    requires:
+      - name: mobi_dev_cap-auth
+      - name: mobi_dev_cap-db
+      - name: sftp-mobi-destination
+
+    provides:
+      - name: srv-api
+        properties:
+          srv-url: ${default-url}
+
+    parameters:
+      buildpack: nodejs_buildpack
+      instances: 1
+      app-name: mobi-cap-srv-${space}
+
+    build-parameters:
+      builder: npm-ci
+
+
+  # =========================
+  # APP ROUTER
+  # =========================
+  - name: mobi_dev_cap-approuter
+    type: approuter.nodejs
+    path: approuter
+
+    requires:
+
+      - name: mobi_dev_cap-auth
+
+      - name: mobi_dev_cap-destination-service
+
+      - name: mobi_dev_cap-repo-runtime
+
+      - name: srv-api
+        group: destinations
+        properties:
+          name: srv-api
+          url: ~{srv-url}
+          forwardAuthToken: true
+
+      - name: sftp-mobi-destination
+        group: destinations
+        properties:
+          name: ui5
+          url: https://ui5.sap.com
+          forwardAuthToken: false
+
+    parameters:
+      disk-quota: 512M
+      memory: 512M
+      app-name: mobi-cap-approuter-${space}
+
+
+  # =========================
+  # HANA DB DEPLOYER
+  # =========================
+  - name: mobi_dev_cap-db-deployer
+    type: hdb
+    path: gen/db
+
+    requires:
+      - name: mobi_dev_cap-db
+
+    parameters:
+      buildpack: nodejs_buildpack
+      app-name: mobi-cap-db-deployer-${space}
+
+
+  # =========================
+  # HTML5 APPLICATION CONTENT
+  # =========================
+  - name: mobi_dev_cap-app-content
+    type: com.sap.application.content
+    path: .
+
+    requires:
+
+      - name: mobi_dev_cap-repo-host
+        parameters:
+          content-target: true
+
+    build-parameters:
+      build-result: resources
+
+      requires:
+
+        - name: glvlookup
+          artifacts:
+            - glvlookup.zip
+          target-path: resources/
+
+        # - name: displayglvlookup
+        #   artifacts:
+        #     - displayglvlookup.zip
+        #   target-path: resources/
+
+        - name: masterbpupload
+          artifacts:
+            - masterbpupload.zip
+          target-path: resources/
+
+
+  # =========================
+  # GL V LOOKUP APPLICATION
+  # =========================
+  - name: glvlookup
+    type: html5
+    path: app/gl_vlookup
+
+    build-parameters:
+      build-result: dist
+      builder: custom
+
+      commands:
+        - npm install
+        - npm run build:cf
+
+      supported-platforms: []
+
+
+  # =========================
+  # DISPLAY GL V LOOKUP APPLICATION
+  # =========================
+  # - name: displayglvlookup
+  #   type: html5
+  #   path: app/display_glvlookup
+
+  #   build-parameters:
+  #     build-result: dist
+  #     builder: custom
+
+  #     commands:
+  #       - npm install
+  #       - npm run build:cf
+
+  #     supported-platforms: []
+
+
+  # =========================
+  # MASTER BP UPLOAD APPLICATION
+  # =========================
+  - name: masterbpupload
+    type: html5
+    path: app/masterbpupload
+
+    build-parameters:
+      build-result: dist
+      builder: custom
+
+      commands:
+        - npm install
+        - npm run build:cf
+
+      supported-platforms: []
+
+
+resources:
+
+  # =========================
+  # XSUAA
+  # =========================
+  - name: mobi_dev_cap-auth
+    type: org.cloudfoundry.managed-service
+
+    parameters:
+      service: xsuaa
+      service-plan: application
+      service-name: mobi-cap-xsuaa-${space}
+
+      path: ./xs-security.json
+
+      config:
+        tenant-mode: dedicated
+        xsappname: mobi-cap-${space}
+
+
+  # =========================
+  # HANA HDI CONTAINER
+  # =========================
+  - name: mobi_dev_cap-db
+    type: com.sap.xs.hdi-container
+
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+      service-name: mobi-cap-hdi-${space}
+
+
+  # =========================
+  # HTML5 APP REPOSITORY HOST
+  # =========================
+  - name: mobi_dev_cap-repo-host
+    type: org.cloudfoundry.managed-service
+
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-host
+      service-name: mobi-cap-html5-host-${space}
+
+
+  # =========================
+  # HTML5 APP REPOSITORY RUNTIME
+  # =========================
+  - name: mobi_dev_cap-repo-runtime
+    type: org.cloudfoundry.managed-service
+
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-runtime
+      service-name: mobi-cap-html5-runtime-${space}
+
+
+  # =========================
+  # DESTINATION SERVICE
+  # =========================
+  - name: mobi_dev_cap-destination-service
+    type: org.cloudfoundry.managed-service
+
+    parameters:
+      service: destination
+      service-plan: lite
+      service-name: mobi-cap-destination-${space}
+
+      config:
+        HTML5Runtime_enabled: true
+
+        init_data:
+          instance:
+
+            existing_destinations_policy: update
+
+            destinations:
+
+              # =========================
+              # UI5 DESTINATION
+              # =========================
+              - Name: ui5
+                Type: HTTP
+                ProxyType: Internet
+                URL: https://ui5.sap.com
+                Authentication: NoAuthentication
+
+
+              # =========================
+              # GL V LOOKUP
+              # =========================
+              - Name: glvlookup-html5
+                Type: HTTP
+                ProxyType: Internet
+                URL: https://ui5.sap.com
+                Authentication: NoAuthentication
+                HTML5.ForwardAuthToken: true
+                sap.cloud.service: fiori.service
+                html5-apps-repo.app_host_id: 183a151f-6bf3-44e5-8dba-31b1e6ecae29
+
+
+              # # =========================
+              # # DISPLAY GL V LOOKUP
+              # # =========================
+              # - Name: displayglvlookup-html5
+              #   Type: HTTP
+              #   ProxyType: Internet
+              #   URL: https://ui5.sap.com
+              #   Authentication: NoAuthentication
+              #   HTML5.ForwardAuthToken: true
+              #   html5-apps-repo.app_host_id: 183a151f-6bf3-44e5-8dba-31b1e6ecae29
+
+
+              # =========================
+              # MASTER BP UPLOAD
+              # =========================
+              - Name: masterbpupload-html5
+                Type: HTTP
+                ProxyType: Internet
+                URL: https://ui5.sap.com
+                Authentication: NoAuthentication
+                HTML5.ForwardAuthToken: true
+                html5-apps-repo.app_host_id: 183a151f-6bf3-44e5-8dba-31b1e6ecae29
+
+        version: 1.0.0
+
+
+  # =========================
+  # EXISTING SFTP DESTINATION
+  # =========================
+  - name: sftp-mobi-destination
+    type: org.cloudfoundry.existing-service
+
+    parameters:
+      service-name: sftp-mobi-destination
+
+
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+
+
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm ci
+        - npx cds build --production

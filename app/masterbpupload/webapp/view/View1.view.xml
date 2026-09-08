@@ -1,0 +1,295 @@
+<mvc:View
+
+    controllerName="masterbpupload.controller.View1"
+
+    xmlns:mvc="sap.ui.core.mvc"
+
+    xmlns="sap.m"
+
+    xmlns:u="sap.ui.unified"
+
+    xmlns:t="sap.ui.table"
+
+    >
+
+    <!-- enableScrolling="true" -> the PAGE scrolls vertically (down) to show
+         all rows. The table grows with the data instead of scrolling itself. -->
+    <Page id="page" enableScrolling="true">
+
+        <!-- Header -->
+        <customHeader>
+            <Bar>
+
+                <contentLeft>
+                    <Image
+                        src="images/mobi-logo.png"
+                        width="130px"
+                        height="55px"/>
+                </contentLeft>
+
+                <contentMiddle>
+                 <HBox
+                    width="100%"
+                    justifyContent="Center">
+
+                    <Title
+                        text="Master BP Upload"
+                        level="H1"/>
+
+                 </HBox>
+                 </contentMiddle>
+
+                <contentRight>
+                    <Button
+                        text="Download Template"
+                        icon="sap-icon://download"
+                        press="onDownload"/>
+
+                    <Button
+                        icon="sap-icon://sys-help"
+                        tooltip="Help"
+                        press="onHelp"/>
+                </contentRight>
+
+            </Bar>
+        </customHeader>
+
+        <content>
+
+            <!-- auto-height VBox: it grows with the table, so the PAGE scrolls down -->
+            <VBox
+                width="100%"
+                class="sapUiMediumMargin">
+
+                <!-- File Upload -->
+
+                <HBox
+                    width="80%"
+                    justifyContent="SpaceBetween"
+                    alignItems="Center"
+                    class="sapUiMediumMarginBottom">
+
+                    <u:FileUploader
+                        id="fileUploader"
+                        width="350px"
+                        fileType="xlsx,xls"
+                        sameFilenameAllowed="true"
+                        uploadOnChange="false"
+                        change="onUpload"/>
+
+                    <Button
+                        id="btnHanaPush"
+                        text="Upload Data"
+                        icon="sap-icon://upload-to-cloud"
+                        type="Emphasized"
+                        enabled="false"
+                        press="onhanapush"/>
+
+                </HBox>
+
+                <!-- Summary -->
+
+                <MessageStrip
+                    id="recordSummary"
+                    visible="false"
+                    showCloseButton="false"
+                    type="Success"/>
+
+                <MessageStrip
+                    id="uploadSummary"
+                    visible="false"
+                    showCloseButton="false"
+                    type="Information"
+                    class="sapUiSmallMarginBottom"/>
+
+                <!-- Preview Table : user-facing MOBI_DB_MASTER fields (template order).
+                     width="100%" + forced column minWidth (controller) => the table
+                     shows its own HORIZONTAL scrollbar. The row count is set to the
+                     data length in onUpload, so the table grows tall and the PAGE
+                     scrolls down. -->
+                <t:Table
+                    id="idTable"
+                    rows="{tableModel>/data}"
+                    selectionMode="None"
+                    width="100%"
+                    enableColumnReordering="true"
+                    enableColumnFreeze="true"
+
+                    visibleRowCountMode="Fixed"
+                    visibleRowCount="15"
+                    rowHeight="38">
+
+                    <!-- paints Invalid rows RED via rec.rowHighlight set by the controller -->
+                    <t:rowSettingsTemplate>
+                        <t:RowSettings highlight="{tableModel>rowHighlight}"/>
+                    </t:rowSettingsTemplate>
+
+                    <!-- REMOVED from table + template on request (backend still assigns/
+                         derives them in the DB, functionality unchanged):
+                         Audit ID, Grouping, Language, Recon Account, Check Dup Inv,
+                         GR-Based Inv, BP Category, BP Role, Active Flag, Status Code,
+                         Record Number (File ID / File Name / Host Name went earlier) -->
+
+                    <t:columns>
+
+                        <t:Column width="130px">
+                            <Label text="ID"/>
+                            <t:template>
+                                <Text text="{tableModel>id}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="130px">
+                            <Label text="Mobi Portal Code"/>
+                            <t:template>
+                                <Text text="{tableModel>mobi_portal_code}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="110px">
+                            <Label text="Company Code"/>
+                            <t:template>
+                                <Text text="{tableModel>sap_company_code}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="120px">
+                            <Label text="Type"/>
+                            <t:template>
+                                <Text text="{tableModel>type}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="250px">
+                            <Label text="Address1"/>
+                            <t:template>
+                                <Text text="{tableModel>address1}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="100px">
+                            <Label text="Postal Code"/>
+                            <t:template>
+                                <Text text="{tableModel>postal_code}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="130px">
+                            <Label text="Country"/>
+                            <t:template>
+                                <Text text="{tableModel>country}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="100px">
+                            <Label text="Country Code"/>
+                            <t:template>
+                                <Text text="{tableModel>country_code}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="170px">
+                            <Label text="Business Reg No (TIN)"/>
+                            <t:template>
+                                <Text text="{tableModel>business_reg_no_tin}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="200px">
+                            <Label text="Master Name"/>
+                            <t:template>
+                                <Text text="{tableModel>master_name}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="150px">
+                            <Label text="External BP Number"/>
+                            <t:template>
+                                <Text text="{tableModel>external_bp_number}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="110px">
+                            <Label text="BP Number"/>
+                            <t:template>
+                                <Text text="{tableModel>bp_number}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="180px">
+                            <Label text="Name"/>
+                            <t:template>
+                                <Text text="{tableModel>name}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="200px">
+                            <Label text="Street"/>
+                            <t:template>
+                                <Text text="{tableModel>street}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="110px">
+                            <Label text="Country Region"/>
+                            <t:template>
+                                <Text text="{tableModel>country_region}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="160px">
+                            <Label text="BP Long Tax Number"/>
+                            <t:template>
+                                <Text text="{tableModel>bp_tax_long_number}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="120px">
+                            <Label text="Purchasing Org"/>
+                            <t:template>
+                                <Text text="{tableModel>purchasing_organization}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="100px">
+                            <Label text="Sales Org"/>
+                            <t:template>
+                                <Text text="{tableModel>sales_organization}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="150px">
+                            <Label text="BP Creation Date"/>
+                            <t:template>
+                                <Text text="{tableModel>bp_creation_date}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="100px">
+                            <Label text="Status"/>
+                            <t:template>
+                                <Text text="{tableModel>Status}"/>
+                            </t:template>
+                        </t:Column>
+
+                        <t:Column width="400px">
+                            <Label text="Error Detail"/>
+                            <t:template>
+                                <Text
+                                    text="{tableModel>ErrorDetail}"
+                                    tooltip="{tableModel>ErrorDetail}"
+                                    wrapping="true"/>
+                            </t:template>
+                        </t:Column>
+
+                    </t:columns>
+
+                </t:Table>
+
+            </VBox>
+
+        </content>
+
+    </Page>
+
+</mvc:View>

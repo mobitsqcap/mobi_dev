@@ -1,0 +1,105 @@
+
+
+POST http://localhost:4004/odata/v4/domestic-settlement-consolidation/runDomesticSettlementConsolidation
+Content-Type: application/json
+
+{}
+
+###########
+POST http://localhost:4004/odata/v4/ingestion-master/triggerMasterIngestion
+Content-Type: application/json
+
+{}
+
+
+#####
+POST http://localhost:4004/odata/v4/ingestion-master/replicateMasterStatusToAudit
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "ID": "M0000064590",
+      "BP_NUMBER": "",
+      "POSTING_STATUS": "12",
+      "STATUS_CODE": "01",
+      
+      "ERROR_DETAIL": " invalid"
+    },
+    {
+      "ID": "TEST006",
+      "BP_NUMBER": "600000066",
+      "POSTING_STATUS": "01",
+      "STATUS_CODE": "00",     
+      "ERROR_DETAIL": ""
+    }
+  ]
+}
+
+######
+POST http://localhost:4004/odata/v4/ingestiontxn/triggerTransactionIngestion
+Content-Type: application/json
+
+{}
+
+######
+POST http://localhost:4004/odata/v4/ingestion-master/replicateMasterStatusToAudit
+{
+  "ID": "TEST001",
+  "FILE_NAME": "Master_20260725.csv",
+  "POSTING_STATUS": "05",
+  "ERROR_DETAIL": "Error from CPI: BP already exists"
+}
+
+#####
+POST http://localhost:4004/odata/v4/Ingestion/triggerMasterIngestion
+Content-Type: application/json
+
+{}
+
+######
+POST http://localhost:4004/odata/v4/Ingestion/triggerTransactionIngestion
+Content-Type: application/json
+
+{}
+
+
+### Run Payin Consolidation
+GET http://localhost:4004/odata/v4/domestic-settlement-consolidation/LineItems
+Authorization: Basic admin-user admin-pass
+Content-Type: application/json
+
+{}
+####
+POST http://localhost:4004/odata/v4triggerTransactionIngestion
+Content-Type: application/json
+    
+    {}
+
+
+#######
+
+POST http://localhost:4004/odata/v4/payin-consolidation/runPayinConsolidation
+Content-Type: application/json
+
+{}
+
+#####
+POST http://localhost:4004/odata/v4/payout-consolidation/runPayoutConsolidation
+Authorization: Basic admin-user admin-pass
+Content-Type: application/json
+
+{}
+
+#####
+
+POST http://localhost:4004/odata/v4/domestic-settlement-consolidation/runDomesticSettlementConsolidation 
+Content-Type: application/json
+
+{}
+
+##################
+Get http://localhost:4004/odata/v4/vl-gl-accounts/uploadExcelData/$metadata
+Content-Type: application/json
+  { 
+  }

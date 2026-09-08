@@ -1,0 +1,90 @@
+
+.appContent {
+  max-width: 1500px;
+  width: 92%;
+  margin: 0 auto;
+}
+
+.mobiHeaderBar {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  animation: mobiSlideDown 0.45s ease;
+}
+
+.mobiLogo {
+  font-size: 1.875rem;
+  font-weight: 900;
+  color: #0040c1;
+  letter-spacing: -1px;
+  padding-right: 0.5rem;
+}
+
+.mobiLogoDot {
+  color: #00b5e2;
+}
+
+.mobiHeaderLink .sapMBtnInner {
+  color: #0a6ed1;
+}
+
+.mobiContent {
+  padding: 2rem 0 0 0;
+  animation: mobiFadeIn 0.5s ease;
+}
+
+/* file name input + browse icon */
+.mobiFileInput .sapMInputBaseInner {
+  border: 1px solid #b9c1c7;
+  border-radius: 3px 0 0 3px;
+  border-right: none;
+}
+
+.mobiBrowseBtn {
+  border: 1px solid #b9c1c7;
+  border-left: none;
+  border-radius: 0 3px 3px 0;
+  background: #ffffff;
+}
+
+.mobiInfoBar {
+  background: #e6f2d5;
+  border-left: 4px solid #2b7a2b;
+  padding: 0.55rem 1rem;
+  border-radius: 3px;
+  margin-top: 1.5rem;
+}
+
+.mobiInfoBar .sapMText {
+  font-weight: 600;
+  color: #1a3518;
+}
+
+.mobiTable {
+  background: #ffffff;
+  border: 1px solid #ededed;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.mobiTable .sapMListTblHeader .sapMTableTH {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+/* left green strip on the master column (like the reference app) */
+.mobiTable .sapMListTblCell.mobiMasterCell {
+  border-left: 3px solid #3a9b3f;
+}
+
+
+
+@keyframes mobiSlideDown {
+  from { transform: translateY(-18px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes mobiFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

@@ -1,0 +1,190 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+
+    <Dialog
+        id="helpDialog"
+        title="GLValueLookup - Help"
+        contentWidth="700px"
+        contentHeight="550px"
+        draggable="true"
+        resizable="true">
+
+        <content>
+
+            <ScrollContainer
+                height="500px"
+                vertical="true">
+
+                <VBox class="sapUiMediumMargin">
+
+                    <!-- Purpose -->
+                    <Title
+                        text="Application Overview"
+                        level="H2"/>
+
+                    <Text
+                        text="The GLV Control Table application is used to upload, validate, store, display and download GL Account mapping data maintained for MOBI transactions."/>
+
+                    <Toolbar class="sapUiSmallMarginTop"/>
+
+                    <!-- Step 1 -->
+                    <Title
+                        text="1. Download Template"
+                        level="H3"/>
+
+                    <Text
+                        text="• Click 'Download Template' to download the standard Excel template."/>
+
+                    <Text
+                        text="• Do not modify the column names or template structure."/>
+
+                    <Toolbar class="sapUiSmallMarginTop"/>
+
+                    <!-- Step 2 -->
+                    <Title
+                        text="2. Upload Excel File"
+                        level="H3"/>
+
+                    <Text
+                        text="• Click 'Choose Excel File' and select the completed template."/>
+
+                    <Text
+                        text="• Only .xlsx or .xls files are supported."/>
+
+                    <Text
+                        text="• The application validates all records before allowing upload."/>
+
+                    <Toolbar class="sapUiSmallMarginTop"/>
+
+                    <!-- Validation -->
+                    <Title
+                        text="3. Validation Rules"
+                        level="H3"/>
+
+                    <Text text="• Company Code must contain exactly 4 digits."/>
+
+                    <Text text="• Allowed Company Codes: 1000, 2000, 3000, 4000 and 5000."/>
+
+                    <Text text="• GL Account must contain exactly 8 digits."/>
+
+                    <Text text="• Payment Type must be either Payins or Payout."/>
+
+                    <Text text="• Host Name must not exceed 20 characters."/>
+
+                    <Text text="• Only one of the following fields should contain 'X'."/>
+
+                    <Text text="   - Transaction Amount"/>
+
+                    <Text text="   - Host MDR Amount"/>
+
+                    <Text text="   - Host Fee Payable"/>
+
+                    <Text text="   - Mobi MDR Amount"/>
+
+                    <Text text="   - MDR Revenue"/>
+
+                    <Text text="• Duplicate GL Accounts are not allowed."/>
+
+                    <Text text="• Duplicate combinations of Company Code, Payment Type, Payment Sub Type, Host and Sequence are not allowed."/>
+
+                    <Toolbar class="sapUiSmallMarginTop"/>
+
+                    <!-- Upload -->
+                    <Title
+                        text="4. Upload Data"
+                        level="H3"/>
+
+                    <Text
+                        text="• Upload Data is enabled only after successful validation."/>
+
+                    <Text
+                        text="• Clicking Upload Data stores all valid records in the database."/>
+
+                    <Text
+                        text="• If duplicate or invalid records exist, upload will be prevented and the errors will be displayed."/>
+
+                    <Toolbar class="sapUiSmallMarginTop"/>
+
+                    <!-- Display -->
+                    <Title
+                        text="5. Display GL Data"
+                        level="H3"/>
+
+                    <Text
+                        text="• Click Display GL Data to retrieve all GL records from the database."/>
+
+                    <Text
+                        text="• The uploaded records are displayed in the table."/>
+
+                    <Text
+                        text="• Upload Data is disabled while viewing database records."/>
+
+                    <Toolbar class="sapUiSmallMarginTop"/>
+
+                    <!-- Download -->
+                    <Title
+                        text="6. Download GL Data"
+                        level="H3"/>
+
+                    <Text
+                        text="• Download GL Data is enabled only after database records are displayed."/>
+
+                    <Text
+                        text="• Clicking Download GL Data exports all displayed records into an Excel file."/>
+
+                    <Text
+                        text="• After download, the Display GL Data and Download GL Data buttons are disabled until data is displayed again."/>
+
+                    <Toolbar class="sapUiSmallMarginTop"/>
+
+                    <!-- Status -->
+                    <Title
+                        text="7. Status Messages"
+                        level="H3"/>
+
+                    <Text text="• Valid - Record passed validation."/>
+
+                    <Text text="• Duplicate - GL Account already exists."/>
+
+                    <Text text="• Invalid Host - Host name is not maintained in the system."/>
+
+                    <Text text="• Validation errors are highlighted in the Status column."/>
+
+                     <Text text="• A - Refers to Active Record in DB."/>
+
+                     <Text text="• I - Refers to InActive Record in DB."/>
+
+                    <Toolbar class="sapUiSmallMarginTop"/>
+
+                    <!-- Notes -->
+                    <Title
+                        text="Important Notes"
+                        level="H3"/>
+
+                    <Text text="• Always use the downloaded template."/>
+
+                    <Text text="• Do not rename or remove any columns."/>
+
+                    <Text text="• Ensure mandatory fields are populated."/>
+
+                    <Text text="• Correct all validation errors before uploading."/>
+
+                    <Text text="• Use Display GL Data to verify records stored in the database."/>
+
+                </VBox>
+
+            </ScrollContainer>
+
+        </content>
+
+        <beginButton>
+            <Button
+                text="Close"
+                type="Emphasized"
+                press=".onCloseHelp"/>
+        </beginButton>
+
+    </Dialog>
+
+</core:FragmentDefinition>

@@ -1,0 +1,53 @@
+{
+  "name": "mobi_dev_cap",
+  "version": "1.0.0",
+  "dependencies": {
+    "@cap-js/hana": "^2",
+    "@sap-cloud-sdk/connectivity": "^4.7.0",
+    "@sap/cds": "^9.9.2",
+    "@sap/xssec": "^4",
+    "csv-parse": "^7.0.1",
+    "csv-parser": "^3.2.1",
+    "ssh2-sftp-client": "^12.1.1",
+    "uuid": "^14.0.1"
+  },
+  "devDependencies": {
+    "@cap-js/sqlite": "^2.4",
+    "@sap/cds-dk": "^9.9.3",
+    "cds-plugin-ui5": "^0.17.0",
+    "dotenv": "^16.6.1",
+    "mbt": "^1.2.49",
+    "rimraf": "^5.0.5"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "watch-gl_vlookup": "cds watch --open glvlookup/index.html?sap-ui-xx-viewCache=false --livereload false",
+    "undeploy": "cf undeploy mobi_dev_cap --delete-services --delete-service-keys --delete-service-brokers",
+    "build": "rimraf resources mta_archives && mbt build --mtar archive",
+    "deploy": "cf deploy mta_archives/archive.mtar --retries 1",
+    "watch-display_glvlookup": "cds watch --open displayglvlookup/index.html?sap-ui-xx-viewCache=false --livereload false",
+    "watch-masterbpupload": "cds watch --open masterbpupload/index.html?sap-ui-xx-viewCache=false --livereload false"
+  },
+  "private": true,
+  "cds": {
+    "requires": {
+      "db": {
+        "kind": "hana"
+      },
+      "auth": {
+        "kind": "xsuaa"
+      },
+      "[production]": {
+        "db": {
+          "kind": "hana"
+        },
+        "auth": {
+          "kind": "xsuaa"
+        }
+      }
+    }
+  },
+  "workspaces": [
+    "app/*"
+  ]
+}

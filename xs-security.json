@@ -1,0 +1,94 @@
+{
+  "xsappname": "mobi-cap-Mobi_dev_space",
+  "tenant-mode": "dedicated",
+  "authorities": [
+    "sb-mobi-cap-Mobi_dev_space!t632356.PostingCallback",
+    "$XSAPPNAME.PostingCallback"
+  ],
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.Read",
+      "description": "Read-only access to operational and GL account data"
+    },
+    {
+      "name": "$XSAPPNAME.Admin",
+      "description": "Administrative access to GL account data"
+    },
+    {
+      "name": "$XSAPPNAME.AdminMasterBP",
+      "description": "Administrative access to BP master data"
+    },
+    {
+      "name": "$XSAPPNAME.OperationsTrigger",
+      "description": "Trigger master ingestion, transaction ingestion and consolidation runs"
+    },
+    {
+      "name": "$XSAPPNAME.PostingCallback",
+      "description": "Technical CPI access to replicate BP and financial posting results"
+    },
+    {
+      "name": "sb-mobi-cap-Mobi_dev_space!t632356.PostingCallback",
+      "description": "Technical CPI access to replicate BP and financial posting results"
+    }
+  
+  ],
+  "role-templates": [
+    {
+      "name": "Read",
+      "description": "Can view operational and GL account data",
+      "scope-references": [
+        "$XSAPPNAME.Read"
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Can view and manage GL account data",
+      "scope-references": [
+        "$XSAPPNAME.Read",
+        "$XSAPPNAME.Admin"
+      ]
+    },
+    {
+      "name": "Admin-MasterBP",
+      "description": "Can view and upload master data",
+      "scope-references": [
+        "$XSAPPNAME.AdminMasterBP"
+      ]
+    },
+    {
+      "name": "Operations-Trigger",
+      "description": "Can inspect operations and trigger ingestion/consolidation runs",
+      "scope-references": [
+        "$XSAPPNAME.Read",
+        "$XSAPPNAME.OperationsTrigger"
+      ]
+    },
+    {
+      "name": "Posting-Callback",
+      "description": "Technical role for CPI BP and financial posting callbacks",
+      "scope-references": [
+        "sb-mobi-cap-Mobi_dev_space!t632356.PostingCallback",
+        "$XSAPPNAME.PostingCallback"
+      ]
+    },
+    {
+      "name": "Mobi-Operations-Admin",
+      "description": "Administrative access to all MOBI business operations",
+      "scope-references": [
+        "$XSAPPNAME.Read",
+        "$XSAPPNAME.Admin",
+        "$XSAPPNAME.AdminMasterBP",
+        "$XSAPPNAME.OperationsTrigger",
+        "$XSAPPNAME.PostingCallback"
+      ]
+    }
+   
+  ],
+  "oauth2-configuration": {
+    "redirect-uris": [
+      "https://*.cfapps.us10-001.hana.ondemand.com/**",
+      "https://*.hana.ondemand.com/**",
+      "https://*"
+    ]
+  }
+}

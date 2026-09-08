@@ -1,0 +1,123 @@
+{
+	"_version": "1.86.0",
+	"sap.app": {
+		"id": "masterbpupload",
+		"type": "application",
+		"i18n": {
+			"bundleUrl": "i18n/i18n.properties",
+			"supportedLocales": [
+				""
+			]
+		},
+		"applicationVersion": {
+			"version": "0.0.1"
+		},
+		"title": "{{appTitle}}",
+		"description": "{{appDescription}}",
+		"resources": "resources.json",
+		"sourceTemplate": {
+			"id": "@sap/generator-fiori:basic",
+			"version": "1.28.0",
+			"toolsId": "8ab9918d-bde0-4d05-88ce-b18911f60837"
+		},
+		"dataSources": {
+			"mainService": {
+				"uri": "//srv-api/odata/v4/master-upload/",
+				"type": "OData",
+				"settings": {
+					"annotations": [],
+					"odataVersion": "4.0"
+				}
+			}
+		}
+	},
+	"sap.cloud": {
+		"public": true,
+		"service": "masterbpupload.service"
+	},
+	"sap.ui": {
+		"technology": "UI5",
+		"icons": {
+			"icon": "",
+			"favIcon": "",
+			"phone": "",
+			"phone@2": "",
+			"tablet": "",
+			"tablet@2": ""
+		},
+		"deviceTypes": {
+			"desktop": true,
+			"tablet": true,
+			"phone": true
+		}
+	},
+	"sap.ui5": {
+		"flexEnabled": false,
+		"dependencies": {
+			"minUI5Version": "1.150.0",
+			"libs": {
+				"sap.m": {},
+				"sap.ui.core": {},
+				"sap.ui.export": {},
+				"sap.ui.unified": {}
+			}
+		},
+		"contentDensities": {
+			"compact": true,
+			"cozy": true
+		},
+		"models": {
+			"i18n": {
+				"type": "sap.ui.model.resource.ResourceModel",
+				"settings": {
+					"bundleName": "masterbpupload.i18n.i18n",
+					"supportedLocales": [
+						""
+					]
+				}
+			}
+		},
+		"resources": {
+			"css": [
+				{
+					"uri": "css/style.css"
+				}
+			]
+		},
+		"routing": {
+			"config": {
+				"routerClass": "sap.m.routing.Router",
+				"controlAggregation": "pages",
+				"controlId": "app",
+				"transition": "slide",
+				"type": "View",
+				"viewType": "XML",
+				"path": "masterbpupload.view",
+				"async": true,
+				"viewPath": "masterbpupload.view"
+			},
+			"routes": [
+				{
+					"name": "RouteView1",
+					"pattern": ":?query:",
+					"target": [
+						"TargetView1"
+					]
+				}
+			],
+			"targets": {
+				"TargetView1": {
+					"id": "View1",
+					"name": "View1"
+				}
+			}
+		},
+		"rootView": {
+			"viewName": "masterbpupload.view.App",
+			"type": "XML",
+			"id": "App",
+			"async": true
+		},
+		"flexBundle": false
+	}
+}

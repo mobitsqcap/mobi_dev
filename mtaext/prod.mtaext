@@ -1,0 +1,12 @@
+_schema-version: 3.3.0
+ID: mobi_dev_cap-prod
+extends: mobi_dev_cap
+
+resources:
+  - name: mobi_dev_cap-auth
+    parameters:
+      path: ./xs-security-prod.json
+
+  - name: mobi_job_scheduler
+    parameters:
+      service-name: mobi_job_prod

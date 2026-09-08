@@ -1,0 +1,247 @@
+<mvc:View
+    controllerName="glvlookup.controller.View1"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:u="sap.ui.unified"
+    xmlns:t="sap.ui.table">
+
+    <Page
+        id="page"
+        enableScrolling="false">
+
+        <!-- ================= Header ================= -->
+
+        <customHeader>
+
+            <OverflowToolbar>
+
+                <HBox
+                    width="33%"
+                    justifyContent="Start">
+
+                    <Image
+                        src="images/mobi-logo.png"
+                        width="130px"
+                        height="55px"/>
+
+                </HBox>
+
+                <HBox
+                    width="34%"
+                    justifyContent="Center">
+
+                    <Title
+                        text="GLValueLookup"
+                        level="H1"/>
+
+                </HBox>
+
+                <HBox
+                    width="33%"
+                    justifyContent="End">
+
+                    <Button
+                        icon="sap-icon://sys-help"
+                        type="Transparent"
+                        tooltip="Help"
+                        press="onHelp"/>
+
+                </HBox>
+
+            </OverflowToolbar>
+
+        </customHeader>
+
+        <content>
+
+            <VBox
+                width="100%"
+                height="100%"
+                fitContainer="true"
+                class="sapUiSmallMarginTop sapUiSmallMarginBottom">
+
+                <!-- Top Buttons -->
+
+                <HBox
+                    width="100%"
+                    justifyContent="End"
+                    class="sapUiSmallMarginBottom">
+
+                    <Button
+                        text="Download Template"
+                        icon="sap-icon://download"
+                        press="onDownload"
+                        class="sapUiTinyMarginEnd"/>
+
+                    <Button
+                        id="btnDownloadGL"
+                        text="Download GL Data"
+                        icon="sap-icon://excel-attachment"
+                        type="Emphasized"
+                        enabled="false"
+                        press="onDownloadGLData"/>
+
+                </HBox>
+
+                <!-- Upload Section -->
+
+                <HBox
+                    width="100%"
+                    justifyContent="SpaceBetween"
+                    alignItems="Center"
+                    class="sapUiMediumMarginBottom">
+
+                    <u:FileUploader
+                        id="fileUploader"
+                        width="350px"
+                        placeholder="Choose Excel File"
+                        buttonText="Browse"
+                        fileType="xlsx,xls"
+                        uploadOnChange="false"
+                        sameFilenameAllowed="true"
+                        change="onUpload"/>
+
+                    <HBox>
+
+                        <Button
+                            id="btnHanaPush"
+                            text="Upload Data"
+                            icon="sap-icon://upload-to-cloud"
+                            type="Emphasized"
+                            enabled="false"
+                            press="onhanapush"
+                            class="sapUiTinyMarginEnd"/>
+
+                        <Button
+                            id="btnDisplay"
+                            text="Display GL Data"
+                            icon="sap-icon://table-view"
+                            type="Emphasized"
+                            press="onDisplayGLData"/>
+
+                    </HBox>
+
+                </HBox>
+
+                <MessageStrip
+                    id="recordSummary"
+                    visible="false"
+                    type="Success"
+                    showCloseButton="false"
+                    class="sapUiSmallMarginBottom"/>
+
+                <MessageStrip
+                    id="uploadSummary"
+                    visible="false"
+                    type="Information"
+                    showCloseButton="false"
+                    class="sapUiSmallMarginBottom"/>
+
+                <!-- ================= Table ================= -->
+  <ScrollContainer
+        width="100%"
+        height="100%"
+        vertical="true"
+        horizontal="false">
+<Table
+    id="idTable"
+    inset="false"
+    width="100%"
+    fixedLayout="true"
+    growing="true"
+    growingThreshold="20"
+    growingScrollToLoad="true"
+    items="{tableModel>/data}">
+
+    <columns>
+
+        <Column width="8%">
+            <Text text="Company Code"/>
+        </Column>
+
+        <Column width="8%">
+            <Text text="Payment Type"/>
+        </Column>
+
+        <Column width="10%">
+            <Text text="Payment Sub Type"/>
+        </Column>
+
+        <Column width="8%">
+            <Text text="Host"/>
+        </Column>
+
+        <Column width="10%">
+            <Text text="Transaction Amount"/>
+        </Column>
+
+        <Column width="10%">
+            <Text text="Host MDR Amount"/>
+        </Column>
+
+        <Column width="10%">
+            <Text text="Host Fee Payable"/>
+        </Column>
+
+        <Column width="10%">
+            <Text text="Mobi MDR Amount"/>
+        </Column>
+
+        <Column width="8%">
+            <Text text="MDR Revenue"/>
+        </Column>
+
+        <Column width="10%">
+            <Text text="GL Accounts"/>
+        </Column>
+
+        <Column width="8%">
+            <Text text="Status"/>
+        </Column>
+
+    </columns>
+
+    <items>
+
+        <ColumnListItem
+            highlight="{tableModel>rowHighlight}">
+
+            <cells>
+
+                <Text text="{tableModel>Company Code}"/>
+
+                <Text text="{tableModel>Payment Type}"/>
+
+                <Text text="{tableModel>Payment Sub Type}"/>
+
+                <Text text="{tableModel>Host}"/>
+
+                <Text text="{tableModel>transaction_amount}"/>
+
+                <Text text="{tableModel>host_mdr_amount}"/>
+
+                <Text text="{tableModel>host_fee_payable}"/>
+
+                <Text text="{tableModel>mobi_mdr_amount}"/>
+
+                <Text text="{tableModel>mdr_revenue}"/>
+
+                <Text text="{tableModel>GL Accounts}"/>
+
+                <Text text="{tableModel>Status}"/>
+
+            </cells>
+
+        </ColumnListItem>
+
+    </items>
+
+</Table>
+  </ScrollContainer>
+            </VBox>
+
+        </content>
+
+    </Page>
+
+</mvc:View>
