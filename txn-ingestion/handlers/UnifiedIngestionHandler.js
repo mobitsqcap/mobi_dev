@@ -11,6 +11,7 @@ class UnifiedIngestionHandler {
 
   async handle(executionContext = {}) {
     const logs = [];
+    const fileResults = [];
 
     const fileinScan = await this._listFiles(
       Constants.SFTP.TRANSACTION.FILEIN_PATH,
@@ -88,7 +89,7 @@ class UnifiedIngestionHandler {
     logs.push(`Invalid FILE_IN files selected for rejection: ${invalidFiles.length}`);
     for (const file of invalidFiles) {
       logs.push(`Moving invalid file ${file.name} to ERROR.`);
-      await this.transactionFileHandler.rejectInvalidFileName(file, executionContext);
+      fileResults.push(await this.transactionFileHandler.rejectInvalidFileName(file, executionContext));
       filesProcessed += 1;
     }
 
@@ -99,24 +100,24 @@ class UnifiedIngestionHandler {
       if (file.source === 'processing' && file.retryFile) {
         const mergeResult = await this._mergeRetryPayload(file, file.retryFile, logs);
         if (!mergeResult.ok) {
-          await this.transactionFileHandler.rejectInvalidFileName(
+          fileResults.push(await this.transactionFileHandler.rejectInvalidFileName(
             file.retryFile,
             executionContext,
             {
               statusName: 'CSV_HEADER_MISMATCH',
               detail: `${file.retryFile.name} has an invalid retry-file format: ${mergeResult.error.message}`
             }
-          );
+          ));
           filesProcessed += 1;
           continue;
         }
       }
 
-      await this.transactionFileHandler.process(file, executionContext);
+      fileResults.push(await this.transactionFileHandler.process(file, executionContext));
       filesProcessed += 1;
     }
 
-    return { filesProcessed, logs };
+    return { filesProcessed, logs, fileResults };
   }
 
   async _mergeRetryPayload(processingFile, retryFile, logs) {

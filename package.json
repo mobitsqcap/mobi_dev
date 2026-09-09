@@ -8,6 +8,7 @@
     "@sap/xssec": "^4",
     "csv-parse": "^7.0.1",
     "csv-parser": "^3.2.1",
+    "nodemailer": "^10.0.1",
     "ssh2-sftp-client": "^12.1.1",
     "uuid": "^14.0.1"
   },

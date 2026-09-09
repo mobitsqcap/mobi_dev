@@ -28,6 +28,7 @@ const ErrorFileHandler = require('../txn-ingestion/handlers/ErrorFileHandler');
 const SuccessFileHandler = require('../txn-ingestion/handlers/SuccessFileHandler');
 const TransactionFileHandler = require('../txn-ingestion/handlers/TransactionFileHandler');
 const UnifiedIngestionHandler = require('../txn-ingestion/handlers/UnifiedIngestionHandler');
+const MailNotificationService = require('../shared/services/MailNotificationService');
 
 let transactionRunInProgress = false;
 
@@ -40,6 +41,7 @@ module.exports = cds.service.impl(async function transactionIngestionService() {
   const fileBatchRepository = new FileBatchRepository();
   const auditRepository = new AuditRepository();
   const sftpService = new SftpService();
+  const mailNotificationService = new MailNotificationService();
 
   const validationService = new ValidationService({
     technicalValidator: new TechnicalValidator(),
@@ -102,6 +104,9 @@ module.exports = cds.service.impl(async function transactionIngestionService() {
         actor: actorOf(request),
         runId: uuid()
       });
+      await notify(mailNotificationService, {
+        flow: 'Transaction SFTP ingestion', records: result.fileResults || []
+      });
 
       return {
         filesProcessed: Number(result.filesProcessed || 0),
@@ -109,6 +114,9 @@ module.exports = cds.service.impl(async function transactionIngestionService() {
         logs: [...sftpService.getTrace(), ...(result.logs || [])]
       };
     } catch (error) {
+      await notify(mailNotificationService, {
+        flow: 'Transaction SFTP ingestion', failed: true, errorMessage: error.message
+      });
       return {
         filesProcessed: 0,
         message: `Transaction ingestion failed: ${error.message}`,
@@ -123,3 +131,8 @@ module.exports = cds.service.impl(async function transactionIngestionService() {
     }
   });
 });
+
+async function notify(service, payload) {
+  try { await service.sendRunSummary(payload); }
+  catch (error) { console.error(`[MailNotification] ${payload.flow}: ${error.message}`); }
+}

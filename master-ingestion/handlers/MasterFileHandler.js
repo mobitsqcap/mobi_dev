@@ -48,7 +48,14 @@ class MasterFileHandler extends BaseFileHandler {
           validRecords: parsed.records || [],
           inserted
         });
-        return;
+      
+        return this._summary(file, context, {
+          total: parsed.totalRows,
+          final: inserted ? parsed.validCount : 0,
+          errors: parsed.errorCount,
+          status: 'COMPLETED_WITH_ERRORS',
+          location: context.paths.ERROR_PATH
+        });
       }
 
       let inserted = false;
@@ -74,9 +81,36 @@ class MasterFileHandler extends BaseFileHandler {
         validRecords: parsed.records || [],
         inserted
       });
+      return this._summary(file, context, {
+        total: parsed.totalRows,
+        final: inserted ? parsed.validCount : 0,
+        errors: parsed.errorCount,
+        status: 'COMPLETED',
+        location: context.completedPath
+      });
     } catch (error) {
       await this.fail(file, context, error);
+      return this._summary(file, context, {
+        total: error.totalRows ?? context?.stats?.totalRows ?? 0,
+        final: 0,
+        errors: error.errorCount ?? error.totalRows ?? context?.stats?.errorCount ?? 0,
+        status: 'FAILED',
+        location: context?.paths?.ERROR_PATH || file?.paths?.ERROR_PATH || '',
+        error: error.message
+      });
     }
+  }
+
+  _summary(file, context, values) {
+    return {
+      fileName: file?.name || 'Unknown file',
+      total: Number(values.total || 0),
+      final: Number(values.final || 0),
+      errors: Number(values.errors || 0),
+      status: values.status,
+      location: values.location,
+      error: values.error || ''
+    };
   }
 
   _handleHanaDuplicateError(err, records) {

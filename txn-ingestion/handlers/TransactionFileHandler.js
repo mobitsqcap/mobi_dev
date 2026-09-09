@@ -21,8 +21,7 @@ class TransactionFileHandler {
         !file.isUpdated &&
         await this.fileLogRepository.hasAnyFileName(file.name)
       ) {
-        await this.rejectDuplicateFile(file, executionContext);
-        return { status: 'REJECTED_DUPLICATE' };
+        return this.rejectDuplicateFile(file, executionContext);
       }
 
       context = await this.begin(file, executionContext);
@@ -34,20 +33,18 @@ class TransactionFileHandler {
         context.fileHash &&
         await this.fileHashService.isDuplicateFile(context.fileHash)
       ) {
-        await this.rejectDuplicateFile(file, executionContext, {
+        return this.rejectDuplicateFile(file, executionContext, {
           code: StatusCodeUtil.toCode('DUPLICATE_FILE'),
           detail: `Duplicate file content (sha256 ${String(context.fileHash).slice(0, 16)}...). An identical file was already completed; no records were inserted.`
         });
-        return { status: 'REJECTED_DUPLICATE' };
       }
 
       context = await this.parseAndValidate(file, context);
-      await this.commitOrWriteOutputs(file, context);
-
-      return { status: context.invalidRecords.length ? 'REJECTED' : 'COMPLETED' };
+      const summary = await this.commitOrWriteOutputs(file, context);
+      return summary;
     } catch (error) {
       await this.handleHardFailure(file, context, error);
-      return { status: 'FAILED', error };
+      return this._summary(file, context, { status: 'FAILED', error: error.message });
     }
   }
 
@@ -263,7 +260,13 @@ async commitOrWriteOutputs(file, context) {
       }
     );
 
-    return;
+    return this._summary(file, context, {
+      status: 'FAILED',
+      total: context.totalRows,
+      final: 0,
+      errors: errorCount,
+      location: context.paths.ERROR_PATH
+    });
   }
   const outputPath = context.completedPath.replace(
     /[^/]+$/,
@@ -301,6 +304,9 @@ async commitOrWriteOutputs(file, context) {
     outputPath,
     { statusCode: StatusCodeUtil.toCode('COMPLETED'), errorDetail: '' }
   );
+  return this._summary(file, context, {
+    status: 'COMPLETED', total: context.totalRows, final: validCount, errors: 0, location: outputPath
+  });
 }
   async rejectDuplicateFile(file, executionContext = {}, rejection = {}) {
     const context = await this.begin(file, { ...executionContext, forceNewAudit: true });
@@ -369,6 +375,9 @@ async commitOrWriteOutputs(file, context) {
       parsed.rows,
       { code: duplicateCode, message: detail }
     );
+    return this._summary(file, context, {
+      status: 'FAILED', total: rows.length, final: 0, errors: rows.length, location: context.paths.ERROR_PATH
+    });
   }
 
   async rejectInvalidFileName(file, executionContext = {}, rejection = {}) {
@@ -455,10 +464,12 @@ async commitOrWriteOutputs(file, context) {
         { code: invalidCode, message: detail }
       );
 
-      return { status: StatusCodeUtil.toText(invalidCode) };
+      return this._summary(file, context, {
+        status: 'FAILED', total: 0, final: 0, errors: 1, location: context.paths.ERROR_PATH
+      });
     } catch (error) {
       await this.handleHardFailure(file, context, error);
-      return { status: 'FAILED', error };
+      return this._summary(file, context, { status: 'FAILED', error: error.message });
     }
   }
 
@@ -527,6 +538,20 @@ async commitOrWriteOutputs(file, context) {
     const error = new Error(message, cause ? { cause } : undefined);
     error.code = StatusCodeUtil.toCode(statusName);
     return error;
+  }
+
+  _summary(file, context, values = {}) {
+    return {
+      fileName: file?.name || 'Unknown file',
+      total: Number(values.total ?? context?.totalRows ?? 0),
+      // Transaction ingestion is all-or-nothing: validation errors mean no
+      // records are finalized, even when some rows were individually valid.
+      final: Number(values.final ?? 0),
+      errors: Number(values.errors ?? values.total ?? context?.totalRows ?? 0),
+      status: values.status || 'FAILED',
+      location: values.location || context?.paths?.ERROR_PATH || context?.errorPath || '',
+      error: values.error || ''
+    };
   }
 }
 

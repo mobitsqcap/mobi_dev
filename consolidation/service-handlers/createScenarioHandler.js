@@ -11,6 +11,7 @@ const GLAccountRepository = require('../repositories/GLAccountRepository');
 const TransactionRepository = require('../repositories/TransactionRepository');
 const AuditRepository = require('../repositories/AuditRepository');
 const ReferenceNumberService = require('../services/ReferenceNumberService');
+const MailNotificationService = require('../../shared/services/MailNotificationService');
 
 // Minimal infra shim — replace with your project's real infra if present.
 let infra;
@@ -18,6 +19,7 @@ try { infra = require('../../infra'); } catch (_) { infra = null; }
 
 const log = infra?.Logger ? new infra.Logger('ConsolScenario') : console;
 const serviceCache = new Map();
+const mailNotificationService = new MailNotificationService();
 
 function getConsolidationService(scenarioCode) {
   if (serviceCache.has(scenarioCode)) return serviceCache.get(scenarioCode);
@@ -72,6 +74,21 @@ module.exports = function createScenarioHandler(scenarioCode) {
 
     try {
       const result = await processor();
+      if (!result.dryRun && Number(result.inputTransactions || 0) > 0) {
+        await notify({
+          flow: `${scenarioCode} consolidation`,
+          records: [{
+            scenario: scenarioCode,
+            total: Number(result.inputTransactions || 0),
+            final: Number(result.transactionsUpdated || 0),
+            errors: Number(result.skippedTransactions || 0),
+            status: Number(result.skippedTransactions || 0) ? 'COMPLETED_WITH_ERRORS' : 'COMPLETED',
+            location: result.consolidationErrorFile
+              ? `Transaction_Data/ERROR/${result.consolidationErrorFile}`
+              : (result.consolRefIds ? `Consolidation reference(s): ${result.consolRefIds}` : '')
+          }]
+        });
+      }
 
       return {
         scenario: result.scenario,
@@ -91,7 +108,13 @@ module.exports = function createScenarioHandler(scenarioCode) {
     } catch (err) {
       if (log.error) log.error(`${scenarioCode} run failed: ${err.message}`, { correlationId });
       else console.error(`[${scenarioCode}] run failed: ${err.message}`);
+      await notify({ flow: `${scenarioCode} consolidation`, failed: true, errorMessage: err.message });
       req.error(500, err.message);
     }
   };
 };
+
+async function notify(payload) {
+  try { await mailNotificationService.sendRunSummary(payload); }
+  catch (error) { console.error(`[MailNotification] ${payload.flow}: ${error.message}`); }
+}

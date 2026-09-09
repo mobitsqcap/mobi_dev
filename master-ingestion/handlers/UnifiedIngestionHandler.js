@@ -27,10 +27,12 @@ class UnifiedIngestionHandler {
 
   async handle(executionContext = {}) {
     const logs = [];
+    const fileResults = [];
     const masterFiles = await this._loadMasterFiles(logs);
     const masterClassified = this._classify(masterFiles, 'MASTER');
     logs.push(`Master: ${masterClassified.valid.length} valid, ${masterClassified.invalid.length} invalid`);
-    await this._processInvalidFiles(masterClassified.invalid, executionContext, 'MASTER', logs);
+    //await this._processInvalidFiles(masterClassified.invalid, executionContext, 'MASTER', logs);
+    fileResults.push(...await this._processInvalidFiles(masterClassified.invalid, executionContext, 'MASTER', logs));
 
     const existingIdKeys = await this._loadExistingIdKeys(logs);
     logs.push(`Loaded ${existingIdKeys.size} existing master ID(s) for duplicate check`);
@@ -38,10 +40,12 @@ class UnifiedIngestionHandler {
     for (const file of FileTypeUtil.sortForProcessing(masterClassified.valid)) {
       logs.push(`Processing MASTER: ${file.name}`);
       file.existingIdKeys = existingIdKeys;
-      await this.masterFileHandler.process(file, executionContext, { existingIdKeys });
+      //await this.masterFileHandler.process(file, executionContext, { existingIdKeys });
+      fileResults.push(await this.masterFileHandler.process(file, executionContext, { existingIdKeys }));
     }
 
-    return { filesProcessed: masterFiles.length, logs };
+   // return { filesProcessed: masterFiles.length, logs };
+    return { filesProcessed: masterFiles.length, logs, fileResults };
   }
 
   async handleMasterOnly(ctx) {
@@ -81,6 +85,7 @@ class UnifiedIngestionHandler {
     const actor = Constants.SYSTEM_USERS.SFTP || executionContext.actor || Constants.SYSTEM_USERS.DEFAULT;
     const runId = executionContext.runId || 'MANUAL_RUN';
 
+    const results = [];
     for (const invalidFile of files) {
       logs.push(`Invalid ${expectedType} filename: ${invalidFile.name}`);
       const fileLog = await this.fileLogRepository.ensureTracked(invalidFile, actor);
@@ -131,7 +136,16 @@ class UnifiedIngestionHandler {
           errorFilePath: errRes?.errorTextPath || null
         }
       );
+      results.push({
+        fileName: invalidFile.name,
+        total: 0,
+        final: 0,
+        errors: 1,
+        status: 'FAILED',
+        location: invalidFile.paths?.ERROR_PATH || ''
+      });
     }
+    return results;
   }
 
   _classify(files, expectedType) {

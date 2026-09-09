@@ -16,6 +16,7 @@ const ErrorFileHandler = require('../master-ingestion/handlers/ErrorFileHandler'
 const SuccessFileHandler = require('../master-ingestion/handlers/SuccessFileHandler');
 const MasterFileHandler = require('../master-ingestion/handlers/MasterFileHandler');
 const UnifiedIngestionHandler = require('../master-ingestion/handlers/UnifiedIngestionHandler');
+const MailNotificationService = require('../shared/services/MailNotificationService');
 
 module.exports = cds.service.impl(async function () {
   await StatusCodeUtil.ensureStatusTable();
@@ -31,6 +32,7 @@ module.exports = cds.service.impl(async function () {
   // Services
   // ---------------------------------------------------------------
   const sftpService = new SftpService();
+  const mailNotificationService = new MailNotificationService();
   const masterCsvService = new MasterCsvService();
   const masterUpsertService = new MasterUpsertService(masterRepository);
   const fileHashService = new FileHashService(fileLogRepository);
@@ -78,6 +80,9 @@ module.exports = cds.service.impl(async function () {
     const actor = actorOf(req);
     try {
       const result = await unifiedIngestionHandler.handle({ actor, runId });
+      await notify(mailNotificationService, {
+        flow: 'Master SFTP ingestion', records: result.fileResults || []
+      });
       return {
         filesProcessed: Number(result?.filesProcessed || 0),
         message: 'Master batch ingestion cycle completed successfully.',
@@ -85,6 +90,9 @@ module.exports = cds.service.impl(async function () {
       };
     } catch (error) {
       console.error(`[IngestionMasterService] ${error.stack || error.message}`);
+      await notify(mailNotificationService, {
+        flow: 'Master SFTP ingestion', failed: true, errorMessage: error.message
+      });
       return {
         filesProcessed: 0,
         message: `Master ingestion failed: ${error.message}`,
@@ -141,3 +149,8 @@ module.exports = cds.service.impl(async function () {
     };
   });
 });
+
+async function notify(service, payload) {
+  try { await service.sendRunSummary(payload); }
+  catch (error) { console.error(`[MailNotification] ${payload.flow}: ${error.message}`); }
+}
