@@ -16,6 +16,7 @@ modules:
       - name: mobi_dev_cap-auth
       - name: mobi_dev_cap-db
       - name: sftp-mobi-destination
+      - name: smtp-mobi-destination
 
     provides:
       - name: srv-api
@@ -303,6 +304,16 @@ resources:
 
     parameters:
       service-name: sftp-mobi-destination
+
+
+  # =========================
+  # EXISTING SMTP DESTINATION
+  # =========================
+  - name: smtp-mobi-destination
+    type: org.cloudfoundry.existing-service
+
+    parameters:
+      service-name: smtp-mobi-destination
 
 
 parameters:

@@ -28,7 +28,7 @@ const ErrorFileHandler = require('../txn-ingestion/handlers/ErrorFileHandler');
 const SuccessFileHandler = require('../txn-ingestion/handlers/SuccessFileHandler');
 const TransactionFileHandler = require('../txn-ingestion/handlers/TransactionFileHandler');
 const UnifiedIngestionHandler = require('../txn-ingestion/handlers/UnifiedIngestionHandler');
-const MailNotificationService = require('../shared/services/MailNotificationService');
+const { sendIngestionSummaryMail, sendIngestionFailureMail } = require('../shared/mail/ingestionMailer');
 
 let transactionRunInProgress = false;
 
@@ -41,7 +41,6 @@ module.exports = cds.service.impl(async function transactionIngestionService() {
   const fileBatchRepository = new FileBatchRepository();
   const auditRepository = new AuditRepository();
   const sftpService = new SftpService();
-  const mailNotificationService = new MailNotificationService();
 
   const validationService = new ValidationService({
     technicalValidator: new TechnicalValidator(),
@@ -104,23 +103,21 @@ module.exports = cds.service.impl(async function transactionIngestionService() {
         actor: actorOf(request),
         runId: uuid()
       });
-      await notify(mailNotificationService, {
-        flow: 'Transaction SFTP ingestion', records: result.fileResults || []
-      });
+
+      // Best-effort mail notification — one summary mail per run, never fails the run.
+      const mailLogs = await sendIngestionSummaryMail({ flow: 'Transaction', sftpService, result });
 
       return {
         filesProcessed: Number(result.filesProcessed || 0),
         message: 'Transaction ingestion cycle completed.',
-        logs: [...sftpService.getTrace(), ...(result.logs || [])]
+        logs: [...sftpService.getTrace(), ...(result.logs || []), ...mailLogs]
       };
     } catch (error) {
-      await notify(mailNotificationService, {
-        flow: 'Transaction SFTP ingestion', failed: true, errorMessage: error.message
-      });
+      const mailLogs = await sendIngestionFailureMail({ flow: 'Transaction', error });
       return {
         filesProcessed: 0,
         message: `Transaction ingestion failed: ${error.message}`,
-        logs: [...sftpService.getTrace(), `Transaction ingestion failed: ${error.message}`]
+        logs: [...sftpService.getTrace(), `Transaction ingestion failed: ${error.message}`, ...mailLogs]
       };
     } finally {
       try {
@@ -131,8 +128,3 @@ module.exports = cds.service.impl(async function transactionIngestionService() {
     }
   });
 });
-
-async function notify(service, payload) {
-  try { await service.sendRunSummary(payload); }
-  catch (error) { console.error(`[MailNotification] ${payload.flow}: ${error.message}`); }
-}

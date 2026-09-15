@@ -147,6 +147,8 @@ class BaseFileHandler {
   async complete(file, context, result) {
     let errorDetail = '';
     let errorFilePath = null;
+    let errorPath = null;
+    let status = 'COMPLETED';
 
     if (result.invalidRows && result.invalidRows.length > 0) {
       // 1. There ARE validation errors: Move CSV and generate text file in ERROR folder ONLY
@@ -168,6 +170,8 @@ class BaseFileHandler {
       );
       const errRes = await this.errorFileHandler.handle(file, validationError, context);
       errorFilePath = errRes && errRes.errorTextPath;
+      errorPath = (errRes && errRes.errorPath) || context.errorPath || null;
+      status = Number(result.validCount || 0) > 0 ? 'PARTIAL' : 'FAILED';
     } else {
       // 2. There are NO errors (all records valid): Move CSV to FILE_OUT folder ONLY
       await this.successFileHandler.handle(file, result, context);
@@ -191,6 +195,9 @@ class BaseFileHandler {
       inserted: result.inserted !== false,
       errorFilePath
     });
+
+    // Returned for the run-level mail notification summary.
+    return { status, errorFilePath, errorPath, outputPath: context.completedPath };
   }
 
   async fail(file, context, error) {
@@ -210,6 +217,7 @@ class BaseFileHandler {
     }
 
     let errorFilePath = null;
+    let errorPath = context?.errorPath || null;
     let friendlyErrorDetail;
     try {
       friendlyErrorDetail = error.errorRows
@@ -227,7 +235,8 @@ class BaseFileHandler {
     if (!isTransient) {
       try {
         const errRes = await this.errorFileHandler.handle(file, error, context);
-        errorFilePath = errRes && errRes.errorPath;
+        errorPath = (errRes && errRes.errorPath) || errorPath;
+        errorFilePath = (errRes && errRes.errorTextPath) || errorFilePath;
       } catch (errHandlerErr) {
         console.error('[BaseFileHandler] errorFileHandler failed:', errHandlerErr.message);
       }
@@ -259,6 +268,9 @@ class BaseFileHandler {
         });
       }
     }
+
+    // Returned for the run-level mail notification summary.
+    return { status: 'FAILED', errorFilePath, errorPath, errorDetail: friendlyErrorDetail };
   }
 
   async _auditRecords(context, file, { validRecords, errorRows, inserted, errorFilePath }) {

@@ -6,7 +6,7 @@ Content-Type: application/json
 {}
 
 ###########
-POST http://localhost:4004/odata/v4/ingestion-master/triggerMasterIngestion
+POST http://localhost:41739/odata/v4/ingestion-master/triggerMasterIngestion
 Content-Type: application/json
 
 {}

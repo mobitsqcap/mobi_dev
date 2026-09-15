@@ -89,7 +89,8 @@ class UnifiedIngestionHandler {
     logs.push(`Invalid FILE_IN files selected for rejection: ${invalidFiles.length}`);
     for (const file of invalidFiles) {
       logs.push(`Moving invalid file ${file.name} to ERROR.`);
-      fileResults.push(await this.transactionFileHandler.rejectInvalidFileName(file, executionContext));
+      const rejection = await this.transactionFileHandler.rejectInvalidFileName(file, executionContext);
+      fileResults.push(normalizeFileResult(file.name, rejection));
       filesProcessed += 1;
     }
 
@@ -100,24 +101,26 @@ class UnifiedIngestionHandler {
       if (file.source === 'processing' && file.retryFile) {
         const mergeResult = await this._mergeRetryPayload(file, file.retryFile, logs);
         if (!mergeResult.ok) {
-          fileResults.push(await this.transactionFileHandler.rejectInvalidFileName(
+          const rejection = await this.transactionFileHandler.rejectInvalidFileName(
             file.retryFile,
             executionContext,
             {
               statusName: 'CSV_HEADER_MISMATCH',
               detail: `${file.retryFile.name} has an invalid retry-file format: ${mergeResult.error.message}`
             }
-          ));
+          );
+          fileResults.push(normalizeFileResult(file.retryFile.name, rejection));
           filesProcessed += 1;
           continue;
         }
       }
 
-      fileResults.push(await this.transactionFileHandler.process(file, executionContext));
+      const fileResult = await this.transactionFileHandler.process(file, executionContext);
+      fileResults.push(normalizeFileResult(file.name, fileResult));
       filesProcessed += 1;
     }
 
-    return { filesProcessed, logs, fileResults };
+    return { filesProcessed, logs, fileResults, totals: sumTotals(fileResults) };
   }
 
   async _mergeRetryPayload(processingFile, retryFile, logs) {
@@ -211,6 +214,35 @@ class UnifiedIngestionHandler {
       paths: Constants.SFTP.TRANSACTION
     }));
   }
+}
+
+/**
+ * Normalizes handler outcomes to the mail-friendly contract:
+ * { fileName, totalRows, validCount, errorCount, status, errorPath, errorTextPath }
+ * Transaction ingestion is all-or-nothing per file, so only COMPLETED/FAILED exist.
+ */
+function normalizeFileResult(fileName, result) {
+  return {
+    fileName: (result && result.fileName) || fileName,
+    totalRows: Number((result && result.totalRows) || 0),
+    validCount: Number((result && result.validCount) || 0),
+    errorCount: Number((result && result.errorCount) || 0),
+    status: result && result.status === 'COMPLETED' ? 'COMPLETED' : 'FAILED',
+    errorPath: (result && (result.finalPath || result.errorPath)) || null,
+    errorTextPath: (result && result.errorTextPath) || null,
+    reason: (result && (result.reason || result.error)) || ''
+  };
+}
+
+function sumTotals(fileResults = []) {
+  return fileResults.reduce(
+    (acc, file) => ({
+      totalRows: acc.totalRows + Number(file.totalRows || 0),
+      validCount: acc.validCount + Number(file.validCount || 0),
+      errorCount: acc.errorCount + Number(file.errorCount || 0)
+    }),
+    { totalRows: 0, validCount: 0, errorCount: 0 }
+  );
 }
 
 module.exports = UnifiedIngestionHandler;

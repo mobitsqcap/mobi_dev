@@ -21,7 +21,8 @@ class TransactionFileHandler {
         !file.isUpdated &&
         await this.fileLogRepository.hasAnyFileName(file.name)
       ) {
-        return this.rejectDuplicateFile(file, executionContext);
+        const rejection = await this.rejectDuplicateFile(file, executionContext);
+        return { status: 'REJECTED_DUPLICATE', fileName: file.name, ...(rejection || {}) };
       }
 
       context = await this.begin(file, executionContext);
@@ -33,18 +34,37 @@ class TransactionFileHandler {
         context.fileHash &&
         await this.fileHashService.isDuplicateFile(context.fileHash)
       ) {
-        return this.rejectDuplicateFile(file, executionContext, {
+        const rejection = await this.rejectDuplicateFile(file, executionContext, {
           code: StatusCodeUtil.toCode('DUPLICATE_FILE'),
           detail: `Duplicate file content (sha256 ${String(context.fileHash).slice(0, 16)}...). An identical file was already completed; no records were inserted.`
         });
+        return { status: 'REJECTED_DUPLICATE', fileName: file.name, ...(rejection || {}) };
       }
 
       context = await this.parseAndValidate(file, context);
-      const summary = await this.commitOrWriteOutputs(file, context);
-      return summary;
+      const outputs = await this.commitOrWriteOutputs(file, context);
+      const validCount = context.validRecords.length;
+      const errorCount = context.invalidRecords.length;
+
+      return {
+        status: errorCount > 0 ? 'REJECTED' : 'COMPLETED',
+        fileName: file.name,
+        totalRows: Number(context.totalRows || 0),
+        validCount,
+        errorCount,
+        ...(outputs || {})
+      };
     } catch (error) {
-      await this.handleHardFailure(file, context, error);
-      return this._summary(file, context, { status: 'FAILED', error: error.message });
+      const failure = await this.handleHardFailure(file, context, error);
+      return {
+        status: 'FAILED',
+        fileName: file.name,
+        totalRows: Number(error.totalRows ?? context?.totalRows ?? 0),
+        validCount: 0,
+        errorCount: Number(error.errorCount ?? context?.totalRows ?? 0),
+        ...(failure || {}),
+        error: error.message
+      };
     }
   }
 
@@ -206,7 +226,7 @@ async commitOrWriteOutputs(file, context) {
       `${validCount} otherwise-valid record(s) were not inserted.` +
       (partiallyValid ? ' Original payload kept in PROCESSING and copied to PROCESSED.' : '');
 
-    await this.errorFileHandler.handle(file, context.allRecords, {
+    const errorOutputs = await this.errorFileHandler.handle(file, context.allRecords, {
       paths: context.paths,
       errorPath: context.errorPath,
       auditId: context.auditId,
@@ -260,13 +280,11 @@ async commitOrWriteOutputs(file, context) {
       }
     );
 
-    return this._summary(file, context, {
-      status: 'FAILED',
-      total: context.totalRows,
-      final: 0,
-      errors: errorCount,
-      location: context.paths.ERROR_PATH
-    });
+    return {
+      errorCsvPath: (errorOutputs && errorOutputs.errorCsvPath) || null,
+      errorTextPath: (errorOutputs && errorOutputs.errorTextPath) || null,
+      finalPath
+    };
   }
   const outputPath = context.completedPath.replace(
     /[^/]+$/,
@@ -304,9 +322,8 @@ async commitOrWriteOutputs(file, context) {
     outputPath,
     { statusCode: StatusCodeUtil.toCode('COMPLETED'), errorDetail: '' }
   );
-  return this._summary(file, context, {
-    status: 'COMPLETED', total: context.totalRows, final: validCount, errors: 0, location: outputPath
-  });
+
+  return { outputPath };
 }
   async rejectDuplicateFile(file, executionContext = {}, rejection = {}) {
     const context = await this.begin(file, { ...executionContext, forceNewAudit: true });
@@ -343,7 +360,7 @@ async commitOrWriteOutputs(file, context) {
       console.warn(`[TransactionFileHandler] Could not move duplicate input: ${error.message}`);
     }
 
-    await this.errorFileHandler.handle(file, rows, {
+    const errorOutputs = await this.errorFileHandler.handle(file, rows, {
       paths: context.paths,
       errorPath: context.errorPath,
       auditId: context.auditId,
@@ -375,9 +392,18 @@ async commitOrWriteOutputs(file, context) {
       parsed.rows,
       { code: duplicateCode, message: detail }
     );
-    return this._summary(file, context, {
-      status: 'FAILED', total: rows.length, final: 0, errors: rows.length, location: context.paths.ERROR_PATH
-    });
+
+    return {
+      fileName: file.name,
+      totalRows: Number(result.totalRows || 0),
+      validCount: 0,
+      errorCount: Number(result.errorCount || 0),
+      status: 'FAILED',
+      errorCsvPath: (errorOutputs && errorOutputs.errorCsvPath) || null,
+      errorTextPath: (errorOutputs && errorOutputs.errorTextPath) || null,
+      finalPath,
+      reason: detail
+    };
   }
 
   async rejectInvalidFileName(file, executionContext = {}, rejection = {}) {
@@ -430,7 +456,7 @@ async commitOrWriteOutputs(file, context) {
 
       file.path = context.errorPath;
 
-      await this.errorFileHandler.handle(file, [row], {
+      const errorOutputs = await this.errorFileHandler.handle(file, [row], {
         paths: context.paths,
         errorPath: context.errorPath,
         auditId: context.auditId,
@@ -464,19 +490,33 @@ async commitOrWriteOutputs(file, context) {
         { code: invalidCode, message: detail }
       );
 
-      return this._summary(file, context, {
-        status: 'FAILED', total: 0, final: 0, errors: 1, location: context.paths.ERROR_PATH
-      });
+      return {
+        fileName: file.name,
+        totalRows: Number(result.totalRows || 0),
+        validCount: 0,
+        errorCount: Number(result.errorCount || 0),
+        status: 'FAILED',
+        errorTextPath: (errorOutputs && errorOutputs.errorTextPath) || null,
+        finalPath: context.errorPath,
+        reason: detail
+      };
     } catch (error) {
-      await this.handleHardFailure(file, context, error);
-      return this._summary(file, context, { status: 'FAILED', error: error.message });
+      const failure = await this.handleHardFailure(file, context, error);
+      return { status: 'FAILED', fileName: file.name, ...(failure || {}), error: error.message };
     }
   }
 
   async handleHardFailure(file, context, error) {
     if (!context?.auditId) {
       console.error(`[TransactionFileHandler] ${file?.name || 'unknown'} failed: ${error.message}`);
-      return;
+      return {
+        fileName: file?.name || 'unknown',
+        totalRows: 0,
+        validCount: 0,
+        errorCount: 0,
+        status: 'FAILED',
+        error: error.message
+      };
     }
 
     const code = StatusCodeUtil.normalizeCode(error.code, 'UNKNOWN_ERROR');
@@ -492,8 +532,9 @@ async commitOrWriteOutputs(file, context) {
       STATUS_MESSAGE: error.message
     }));
 
+    let errorOutputs = null;
     try {
-      await this.errorFileHandler.handle(file, rawRows, {
+      errorOutputs = await this.errorFileHandler.handle(file, rawRows, {
         paths: context.paths,
         errorPath: context.errorPath,
         auditId: context.auditId,
@@ -532,26 +573,23 @@ async commitOrWriteOutputs(file, context) {
     } catch (auditError) {
       console.error(`[TransactionFileHandler] AUDIT failure: ${auditError.message}`);
     }
+
+    return {
+      fileName: file.name,
+      totalRows: Number(totalRows || 0),
+      validCount: 0,
+      errorCount: Number(errorCount || 0),
+      status: 'FAILED',
+      errorCsvPath: (errorOutputs && errorOutputs.errorCsvPath) || null,
+      errorTextPath: (errorOutputs && errorOutputs.errorTextPath) || null,
+      error: error.message
+    };
   }
 
   _codedError(statusName, message, cause) {
     const error = new Error(message, cause ? { cause } : undefined);
     error.code = StatusCodeUtil.toCode(statusName);
     return error;
-  }
-
-  _summary(file, context, values = {}) {
-    return {
-      fileName: file?.name || 'Unknown file',
-      total: Number(values.total ?? context?.totalRows ?? 0),
-      // Transaction ingestion is all-or-nothing: validation errors mean no
-      // records are finalized, even when some rows were individually valid.
-      final: Number(values.final ?? 0),
-      errors: Number(values.errors ?? values.total ?? context?.totalRows ?? 0),
-      status: values.status || 'FAILED',
-      location: values.location || context?.paths?.ERROR_PATH || context?.errorPath || '',
-      error: values.error || ''
-    };
   }
 }
 

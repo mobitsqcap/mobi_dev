@@ -40,7 +40,7 @@ class MasterFileHandler extends BaseFileHandler {
           }
         }
 
-        await this.complete(file, context, {
+        const completion = await this.complete(file, context, {
           totalRows: parsed.totalRows,
           validCount: validationError.validCount,
           errorCount: validationError.errorCount,
@@ -48,14 +48,7 @@ class MasterFileHandler extends BaseFileHandler {
           validRecords: parsed.records || [],
           inserted
         });
-      
-        return this._summary(file, context, {
-          total: parsed.totalRows,
-          final: inserted ? parsed.validCount : 0,
-          errors: parsed.errorCount,
-          status: 'COMPLETED_WITH_ERRORS',
-          location: context.paths.ERROR_PATH
-        });
+        return this._summary(file, parsed, completion);
       }
 
       let inserted = false;
@@ -73,7 +66,7 @@ class MasterFileHandler extends BaseFileHandler {
         }
       }
 
-      await this.complete(file, context, {
+      const completion = await this.complete(file, context, {
         totalRows: parsed.totalRows,
         validCount: parsed.validCount,
         errorCount: parsed.errorCount,
@@ -81,35 +74,33 @@ class MasterFileHandler extends BaseFileHandler {
         validRecords: parsed.records || [],
         inserted
       });
-      return this._summary(file, context, {
-        total: parsed.totalRows,
-        final: inserted ? parsed.validCount : 0,
-        errors: parsed.errorCount,
-        status: 'COMPLETED',
-        location: context.completedPath
-      });
+      return this._summary(file, parsed, completion);
     } catch (error) {
-      await this.fail(file, context, error);
-      return this._summary(file, context, {
-        total: error.totalRows ?? context?.stats?.totalRows ?? 0,
-        final: 0,
-        errors: error.errorCount ?? error.totalRows ?? context?.stats?.errorCount ?? 0,
+      const failure = await this.fail(file, context, error);
+      const stats = context?.stats || {};
+      return {
+        fileName: file.name,
+        totalRows: Number(error.totalRows ?? stats.totalRows ?? 0),
+        validCount: Number(error.validCount ?? stats.validCount ?? 0),
+        errorCount: Number(error.errorCount ?? stats.errorCount ?? 0),
         status: 'FAILED',
-        location: context?.paths?.ERROR_PATH || file?.paths?.ERROR_PATH || '',
+        errorPath: (failure && failure.errorPath) || (context && context.errorPath) || null,
+        errorTextPath: (failure && failure.errorFilePath) || null,
         error: error.message
-      });
+      };
     }
   }
 
-  _summary(file, context, values) {
+  _summary(file, parsed, completion) {
     return {
-      fileName: file?.name || 'Unknown file',
-      total: Number(values.total || 0),
-      final: Number(values.final || 0),
-      errors: Number(values.errors || 0),
-      status: values.status,
-      location: values.location,
-      error: values.error || ''
+      fileName: file.name,
+      totalRows: Number(parsed.totalRows || 0),
+      validCount: Number(parsed.validCount || 0),
+      errorCount: Number(parsed.errorCount || 0),
+      status: (completion && completion.status) || 'COMPLETED',
+      errorPath: (completion && completion.errorPath) || null,
+      errorTextPath: (completion && completion.errorFilePath) || null,
+      outputPath: (completion && completion.outputPath) || null
     };
   }
 

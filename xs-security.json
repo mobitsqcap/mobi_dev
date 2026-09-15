@@ -29,8 +29,15 @@
     {
       "name": "sb-mobi-cap-Mobi_dev_space!t632356.PostingCallback",
       "description": "Technical CPI access to replicate BP and financial posting results"
+    },
+    {
+      "name": "$XSAPPNAME.Jobs",
+      "description": "SAP Job Scheduling service scope",
+       "grant-as-authority-to-apps": [
+        "$XSSERVICENAME(mobi_job_dev)"
+      ]
+     
     }
-  
   ],
   "role-templates": [
     {
@@ -81,8 +88,14 @@
         "$XSAPPNAME.OperationsTrigger",
         "$XSAPPNAME.PostingCallback"
       ]
+    },
+    {
+      "name": "Jobs",
+      "description": "Technical role for SAP Job Scheduling service",
+      "scope-references": [
+        "$XSAPPNAME.Jobs"
+      ]
     }
-   
   ],
   "oauth2-configuration": {
     "redirect-uris": [

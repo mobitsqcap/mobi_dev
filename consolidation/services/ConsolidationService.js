@@ -505,6 +505,8 @@ class ConsolidationService {
       transactionsUpdated,
       consolRefIds: documents.map((d) => d.header.CONSOL_REF_ID).join(','),
       consolidationErrorFile: consolidationErrorFile ? consolidationErrorFile.fileName : '',
+      consolidationErrorPath: consolidationErrorFile ? consolidationErrorFile.remotePath : '',
+      consolidationErrorAttachment: consolidationErrorFile ? consolidationErrorFile.content : null,
       message
     };
   }

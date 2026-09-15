@@ -16,7 +16,7 @@ const ErrorFileHandler = require('../master-ingestion/handlers/ErrorFileHandler'
 const SuccessFileHandler = require('../master-ingestion/handlers/SuccessFileHandler');
 const MasterFileHandler = require('../master-ingestion/handlers/MasterFileHandler');
 const UnifiedIngestionHandler = require('../master-ingestion/handlers/UnifiedIngestionHandler');
-const MailNotificationService = require('../shared/services/MailNotificationService');
+const { sendIngestionSummaryMail, sendIngestionFailureMail } = require('../shared/mail/ingestionMailer');
 
 module.exports = cds.service.impl(async function () {
   await StatusCodeUtil.ensureStatusTable();
@@ -32,7 +32,6 @@ module.exports = cds.service.impl(async function () {
   // Services
   // ---------------------------------------------------------------
   const sftpService = new SftpService();
-  const mailNotificationService = new MailNotificationService();
   const masterCsvService = new MasterCsvService();
   const masterUpsertService = new MasterUpsertService(masterRepository);
   const fileHashService = new FileHashService(fileLogRepository);
@@ -80,23 +79,20 @@ module.exports = cds.service.impl(async function () {
     const actor = actorOf(req);
     try {
       const result = await unifiedIngestionHandler.handle({ actor, runId });
-      await notify(mailNotificationService, {
-        flow: 'Master SFTP ingestion', records: result.fileResults || []
-      });
+      // Best-effort mail notification — one summary mail per run, never fails the run.
+      const mailLogs = await sendIngestionSummaryMail({ flow: 'Master', sftpService, result });
       return {
         filesProcessed: Number(result?.filesProcessed || 0),
         message: 'Master batch ingestion cycle completed successfully.',
-        logs: [...sftpService.getTrace(), ...(result?.logs || [])]
+        logs: [...sftpService.getTrace(), ...(result?.logs || []), ...mailLogs]
       };
     } catch (error) {
       console.error(`[IngestionMasterService] ${error.stack || error.message}`);
-      await notify(mailNotificationService, {
-        flow: 'Master SFTP ingestion', failed: true, errorMessage: error.message
-      });
+      const mailLogs = await sendIngestionFailureMail({ flow: 'Master', error });
       return {
         filesProcessed: 0,
         message: `Master ingestion failed: ${error.message}`,
-        logs: [...sftpService.getTrace(), `Master ingestion failed: ${error.message}`]
+        logs: [...sftpService.getTrace(), `Master ingestion failed: ${error.message}`, ...mailLogs]
       };
     } finally {
       try {
@@ -149,8 +145,3 @@ module.exports = cds.service.impl(async function () {
     };
   });
 });
-
-async function notify(service, payload) {
-  try { await service.sendRunSummary(payload); }
-  catch (error) { console.error(`[MailNotification] ${payload.flow}: ${error.message}`); }
-}

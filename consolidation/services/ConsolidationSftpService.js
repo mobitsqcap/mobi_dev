@@ -86,6 +86,12 @@ class ConsolidationSftpService {
     );
   }
 
+  async downloadFile(remotePath) {
+    return this._withRetry(`get ${remotePath}`, (client) =>
+      client.get(this._resolvePath(remotePath))
+    );
+  }
+
   async renameFile(from, to) {
     return this._withRetry(`rename ${from} -> ${to}`, async (client) => {
       const resolvedFrom = this._resolvePath(from);

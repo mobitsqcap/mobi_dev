@@ -31,8 +31,8 @@ class UnifiedIngestionHandler {
     const masterFiles = await this._loadMasterFiles(logs);
     const masterClassified = this._classify(masterFiles, 'MASTER');
     logs.push(`Master: ${masterClassified.valid.length} valid, ${masterClassified.invalid.length} invalid`);
-    //await this._processInvalidFiles(masterClassified.invalid, executionContext, 'MASTER', logs);
-    fileResults.push(...await this._processInvalidFiles(masterClassified.invalid, executionContext, 'MASTER', logs));
+    const invalidResults = await this._processInvalidFiles(masterClassified.invalid, executionContext, 'MASTER', logs);
+    fileResults.push(...invalidResults);
 
     const existingIdKeys = await this._loadExistingIdKeys(logs);
     logs.push(`Loaded ${existingIdKeys.size} existing master ID(s) for duplicate check`);
@@ -40,12 +40,22 @@ class UnifiedIngestionHandler {
     for (const file of FileTypeUtil.sortForProcessing(masterClassified.valid)) {
       logs.push(`Processing MASTER: ${file.name}`);
       file.existingIdKeys = existingIdKeys;
-      //await this.masterFileHandler.process(file, executionContext, { existingIdKeys });
-      fileResults.push(await this.masterFileHandler.process(file, executionContext, { existingIdKeys }));
+      const fileResult = await this.masterFileHandler.process(file, executionContext, { existingIdKeys });
+      if (fileResult) fileResults.push(fileResult);
     }
 
-   // return { filesProcessed: masterFiles.length, logs };
-    return { filesProcessed: masterFiles.length, logs, fileResults };
+    return { filesProcessed: masterFiles.length, logs, fileResults, totals: this._sumTotals(fileResults) };
+  }
+
+  _sumTotals(fileResults = []) {
+    return fileResults.reduce(
+      (acc, file) => ({
+        totalRows: acc.totalRows + Number(file.totalRows || 0),
+        validCount: acc.validCount + Number(file.validCount || 0),
+        errorCount: acc.errorCount + Number(file.errorCount || 0)
+      }),
+      { totalRows: 0, validCount: 0, errorCount: 0 }
+    );
   }
 
   async handleMasterOnly(ctx) {
@@ -84,8 +94,8 @@ class UnifiedIngestionHandler {
     // Master flow ALWAYS records SYSTEM_SFTP as the creator, regardless of who triggered the run
     const actor = Constants.SYSTEM_USERS.SFTP || executionContext.actor || Constants.SYSTEM_USERS.DEFAULT;
     const runId = executionContext.runId || 'MANUAL_RUN';
-
     const results = [];
+
     for (const invalidFile of files) {
       logs.push(`Invalid ${expectedType} filename: ${invalidFile.name}`);
       const fileLog = await this.fileLogRepository.ensureTracked(invalidFile, actor);
@@ -136,15 +146,19 @@ class UnifiedIngestionHandler {
           errorFilePath: errRes?.errorTextPath || null
         }
       );
+
       results.push({
         fileName: invalidFile.name,
-        total: 0,
-        final: 0,
-        errors: 1,
+        totalRows: 0,
+        validCount: 0,
+        errorCount: 0,
         status: 'FAILED',
-        location: invalidFile.paths?.ERROR_PATH || ''
+        errorPath: errRes?.errorPath || errorPath || null,
+        errorTextPath: errRes?.errorTextPath || null,
+        error: detail
       });
     }
+
     return results;
   }
 

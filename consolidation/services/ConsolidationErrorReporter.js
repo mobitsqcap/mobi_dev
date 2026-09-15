@@ -45,7 +45,8 @@ class ConsolidationErrorReporter {
       fileName,
       date8,
       scenarioCode,
-      recordsWritten: records.length
+      recordsWritten: records.length,
+      content: buffer
     };
   }
 
