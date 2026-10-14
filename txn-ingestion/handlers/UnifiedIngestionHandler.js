@@ -22,7 +22,9 @@ class UnifiedIngestionHandler {
 
     const fileinFiles = fileinScan.filter((file) =>
       Constants.FILES.TRANSACTION_REGEX.test(file.name) ||
-      Constants.FILES.TRANSACTION_RETRY_REGEX.test(file.name)
+      Constants.FILES.TRANSACTION_RETRY_REGEX.test(file.name) ||
+      Constants.FILES.TRANSACTION_REVERSAL_REGEX.test(file.name) ||
+      Constants.FILES.TRANSACTION_REVERSAL_RETRY_REGEX.test(file.name)
     );
 
     const invalidFiles = fileinScan.filter((file) => !fileinFiles.includes(file));
@@ -52,7 +54,10 @@ class UnifiedIngestionHandler {
     const newFiles = [];
 
     for (const file of dateValidFiles) {
-      if (Constants.FILES.TRANSACTION_RETRY_REGEX.test(file.name)) {
+      if (
+        Constants.FILES.TRANSACTION_RETRY_REGEX.test(file.name) ||
+        Constants.FILES.TRANSACTION_REVERSAL_RETRY_REGEX.test(file.name)
+      ) {
         const originalName = Constants.RETRY.ORIGINAL_FROM_ERROR_FILE(file.name);
         const processingFile = processingByName.get(originalName);
 
@@ -204,8 +209,11 @@ class UnifiedIngestionHandler {
       ? files
       : files.filter((file) =>
         Constants.FILES.TRANSACTION_REGEX.test(file.name) ||
-        (source === 'filein' && options.includeRetryFiles &&
-          Constants.FILES.TRANSACTION_RETRY_REGEX.test(file.name))
+        (source === 'filein' && options.includeRetryFiles && (
+          Constants.FILES.TRANSACTION_RETRY_REGEX.test(file.name) ||
+          Constants.FILES.TRANSACTION_REVERSAL_REGEX.test(file.name) ||
+          Constants.FILES.TRANSACTION_REVERSAL_RETRY_REGEX.test(file.name)
+        ))
       );
 
     return selected.map((file) => ({

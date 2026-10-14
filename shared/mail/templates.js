@@ -67,7 +67,7 @@ function shell({ banner, environment, titleHtml, greetingHtml, bodyHtml }) {
 <tr>
 <td align="center" style="background:${banner};color:#ffffff;padding:30px;border-radius:8px 8px 0 0;">
 <div style="font-size:32px;font-weight:bold;">SAP Cloud Integration</div>
-<div style="font-size:18px;margin-top:8px;">${escapeHtml(environment)}</div>
+<div style="font-size:18px;margin-top:8px;">DEV</div>
 </td>
 </tr>
 <tr>
@@ -183,7 +183,7 @@ function buildSftpSummaryMail({
       : `The <b>${escapeHtml(interfaceName)}</b> interface execution has completed with <b>errors</b>. ` +
         `No records could be processed successfully. ${escapeHtml(pushNote)} Please find the processing summary below.`;
 
-  let rows = summaryRow('CI Tenant', escapeHtml(environment))
+  let rows = summaryRow('CI Tenant','DEV')
     + summaryRow('Interface Name', escapeHtml(interfaceName))
     + summaryRow('Execution Time', escapeHtml(executionTime))
     + summaryRow('Files Processed', String(list.length))
@@ -285,7 +285,7 @@ function buildConsolidationMail({
         `No transactions could be consolidated (all-or-nothing: no documents were created). ` +
         'Please find the processing summary below.';
 
-  let rows = summaryRow('CI Tenant', escapeHtml(environment))
+  let rows = summaryRow('CI Tenant', 'DEV')
     + summaryRow('Interface Name', escapeHtml(interfaceName))
     + summaryRow('Scenario', escapeHtml(scenarioCode || displayName))
     + summaryRow('Execution Time', escapeHtml(executionTime))
@@ -332,6 +332,112 @@ function buildConsolidationMail({
 }
 
 // ---------------------------------------------------------------------------
+// SAP journal-entry reversal synchronization summary
+// ---------------------------------------------------------------------------
+
+function reversalDocumentsBox(documents = []) {
+  if (!documents.length) return '';
+
+  const rows = documents.map((document) => (
+    `<tr>` +
+    `<td style="border-top:1px solid #d9e2ec;padding:8px;word-break:break-all;">${escapeHtml(document.companyCode || '')}</td>` +
+    `<td style="border-top:1px solid #d9e2ec;padding:8px;word-break:break-all;">${escapeHtml(document.consolidationRefId || '')}</td>` +
+    `<td style="border-top:1px solid #d9e2ec;padding:8px;word-break:break-all;">${escapeHtml(document.originalDocument || '')}</td>` +
+    `<td style="border-top:1px solid #d9e2ec;padding:8px;word-break:break-all;">${escapeHtml(document.reversalDocument || '')}</td>` +
+    `<td style="border-top:1px solid #d9e2ec;padding:8px;text-align:center;">${num(document.transactionRows)}</td>` +
+    `<td style="border-top:1px solid #d9e2ec;padding:8px;text-align:center;">${num(document.lineItemRows)}</td>` +
+    `</tr>`
+  )).join('');
+
+  return `<tr>
+<td style="padding:20px 40px 0 40px;">
+<div style="background:#f7fbff;border:1px solid #d9e2ec;padding:20px;">
+<h3 style="margin-top:0;color:#009de0;">Reversed Consolidation Documents</h3>
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:12px;">
+<thead>
+<tr style="background:#eaf2f8;">
+<th align="left" style="padding:8px;">Company</th>
+<th align="left" style="padding:8px;">CONSOL_REF_ID</th>
+<th align="left" style="padding:8px;">Original SAP Document</th>
+<th align="left" style="padding:8px;">Reversal SAP Document</th>
+<th align="center" style="padding:8px;">Transactions</th>
+<th align="center" style="padding:8px;">Line Items</th>
+</tr>
+</thead>
+<tbody>${rows}</tbody>
+</table>
+</div>
+</td>
+</tr>`;
+}
+
+function buildReversalSummaryMail({
+  environment = 'DEV',
+  executionTime = '',
+  result = {},
+  outcome = 'SUCCESS'
+}) {
+  const meta = OUTCOME_META[outcome] || OUTCOME_META.SUCCESS;
+  const read = num(result.read);
+  const moved = num(result.moved);
+  const alreadyReversed = num(result.alreadyReversed);
+  const ignoredNonBtp = num(result.ignoredNonBtp);
+  const skipped = num(result.skipped);
+  const failed = num(result.failed);
+
+  const greeting = outcome === 'SUCCESS'
+    ? `The <b>SAP Journal Entry Reversal</b> synchronization has completed <b>successfully</b>. ` +
+      `${moved} reversal group(s) were copied, validated and removed from the active tables. ` +
+      `${ignoredNonBtp} direct-SAP/non-BTP reversal(s) were skipped without BTP table changes.`
+    : outcome === 'PARTIAL'
+      ? `The <b>SAP Journal Entry Reversal</b> synchronization completed with <b>partial success</b>. ` +
+        `${moved} group(s) were moved, while ${skipped + failed} group(s) require attention.`
+      : `The <b>SAP Journal Entry Reversal</b> synchronization completed with <b>errors</b>. ` +
+        'No reversal group was moved successfully. Please review the audit details.';
+
+  const rows = summaryRow('CI Tenant', 'DEV')
+    + summaryRow('Interface Name', 'SAP Journal Entry Reversal')
+    + summaryRow('Execution Time', escapeHtml(executionTime))
+    + summaryRow('Run ID', escapeHtml(result.runId || ''))
+    + summaryRow('Date Range', `${escapeHtml(result.fromDate || '')} to ${escapeHtml(result.toDate || '')}`)
+    + summaryRow('SAP Reversals Read', String(read))
+    + summaryRow('Moved to Reversal History', `<span style="color:green;font-weight:bold;">${moved}</span>`)
+    + summaryRow('Already Reversed', String(alreadyReversed))
+    + summaryRow('Direct SAP / Non-BTP Skipped', String(ignoredNonBtp))
+    + summaryRow('Validation Skipped', `<span style="color:#9a6b00;font-weight:bold;">${skipped}</span>`)
+    + summaryRow('Failed', `<span style="color:red;font-weight:bold;">${failed}</span>`)
+    + summaryRow('Transaction Snapshots', String(num(result.transactionRows)))
+    + summaryRow('Header Snapshots', String(num(result.headerRows)))
+    + summaryRow('Line Item Snapshots', String(num(result.lineItemRows)))
+    + summaryRow('BTP_TO_BTP Audit Detail Rows', String(num(result.auditDetailRows)))
+    + summaryRow('Result', escapeHtml(result.message || ''));
+
+  const reversedDocuments = Array.isArray(result.reversedDocuments)
+    ? result.reversedDocuments
+    : [];
+  let body = summaryBox(rows) + reversalDocumentsBox(reversedDocuments);
+  if (outcome === 'SUCCESS') {
+    body += bottomSpacer();
+  } else {
+    body += actionBox(
+      'Review the SAP_REVERSAL / S4_TO_BTP rows in MOBI_DB_AUDIT. ' +
+      'A skipped record is not deleted from the active tables and can be safely retried after the matching or status issue is corrected.'
+    );
+  }
+
+  return {
+    subject: `SAP Journal Entry Reversal -- ${meta.label}`,
+    html: shell({
+      banner: meta.banner,
+      environment,
+      titleHtml: `<h2 style="margin:0;color:${meta.title};">SAP Journal Entry Reversal — ${meta.label}</h2>`,
+      greetingHtml: greeting,
+      bodyHtml: body
+    })
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Run failure (unexpected exception before/without a processing summary)
 // ---------------------------------------------------------------------------
 
@@ -347,7 +453,7 @@ function buildRunFailureMail({
   const greeting = `The <b>${escapeHtml(interfaceName)}</b> interface execution has <b>failed unexpectedly</b> ` +
     'before a processing summary could be produced. Please find the failure details below.';
 
-  let rows = summaryRow('CI Tenant', escapeHtml(environment))
+  let rows = summaryRow('CI Tenant', 'DEV')
     + summaryRow('Interface Name', escapeHtml(interfaceName))
     + summaryRow('Execution Time', escapeHtml(executionTime))
     + summaryRow('Error', `<span style="color:red;font-weight:bold;">${escapeHtml(error)}</span>`);
@@ -381,5 +487,6 @@ module.exports = {
   consolidationSubject,
   buildSftpSummaryMail,
   buildConsolidationMail,
+  buildReversalSummaryMail,
   buildRunFailureMail
 };

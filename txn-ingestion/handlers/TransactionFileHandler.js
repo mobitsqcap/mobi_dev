@@ -234,7 +234,8 @@ async commitOrWriteOutputs(file, context) {
       validCount,
       sourceBuffer: context.buffer,
       errorCode: StatusCodeUtil.toCode('VALIDATION_FAILED'),
-      errorDetail: detail
+      errorDetail: detail,
+      sourceBaseNaming: Constants.FILES.TRANSACTION_REVERSAL_REGEX.test(file.name)
     });
 
     // The file keeps living in PROCESSING for partial rejects.
@@ -369,7 +370,8 @@ async commitOrWriteOutputs(file, context) {
       sourceBuffer: buffer,
       errorCode: duplicateCode,
       errorDetail: detail,
-      fileLevelFailure: true
+      fileLevelFailure: true,
+      sourceBaseNaming: Constants.FILES.TRANSACTION_REVERSAL_REGEX.test(file.name)
     });
 
     const result = { totalRows: rows.length, validCount: 0, errorCount: rows.length };

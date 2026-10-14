@@ -15,8 +15,10 @@ modules:
     requires:
       - name: mobi_dev_cap-auth
       - name: mobi_dev_cap-db
+      - name: mobi_job_scheduler
       - name: sftp-mobi-destination
       - name: smtp-mobi-destination
+      - name: s4hana-mobi-destination
 
     provides:
       - name: srv-api
@@ -40,11 +42,8 @@ modules:
     path: approuter
 
     requires:
-
       - name: mobi_dev_cap-auth
-
       - name: mobi_dev_cap-destination-service
-
       - name: mobi_dev_cap-repo-runtime
 
       - name: srv-api
@@ -90,7 +89,6 @@ modules:
     path: .
 
     requires:
-
       - name: mobi_dev_cap-repo-host
         parameters:
           content-target: true
@@ -99,16 +97,10 @@ modules:
       build-result: resources
 
       requires:
-
         - name: glvlookup
           artifacts:
             - glvlookup.zip
           target-path: resources/
-
-        # - name: displayglvlookup
-        #   artifacts:
-        #     - displayglvlookup.zip
-        #   target-path: resources/
 
         - name: masterbpupload
           artifacts:
@@ -126,30 +118,10 @@ modules:
     build-parameters:
       build-result: dist
       builder: custom
-
       commands:
         - npm install
         - npm run build:cf
-
       supported-platforms: []
-
-
-  # =========================
-  # DISPLAY GL V LOOKUP APPLICATION
-  # =========================
-  # - name: displayglvlookup
-  #   type: html5
-  #   path: app/display_glvlookup
-
-  #   build-parameters:
-  #     build-result: dist
-  #     builder: custom
-
-  #     commands:
-  #       - npm install
-  #       - npm run build:cf
-
-  #     supported-platforms: []
 
 
   # =========================
@@ -162,11 +134,9 @@ modules:
     build-parameters:
       build-result: dist
       builder: custom
-
       commands:
         - npm install
         - npm run build:cf
-
       supported-platforms: []
 
 
@@ -182,7 +152,6 @@ resources:
       service: xsuaa
       service-plan: application
       service-name: mobi-cap-xsuaa-${space}
-
       path: ./xs-security.json
 
       config:
@@ -242,24 +211,16 @@ resources:
 
         init_data:
           instance:
-
             existing_destinations_policy: update
 
             destinations:
 
-              # =========================
-              # UI5 DESTINATION
-              # =========================
               - Name: ui5
                 Type: HTTP
                 ProxyType: Internet
                 URL: https://ui5.sap.com
                 Authentication: NoAuthentication
 
-
-              # =========================
-              # GL V LOOKUP
-              # =========================
               - Name: glvlookup-html5
                 Type: HTTP
                 ProxyType: Internet
@@ -269,22 +230,6 @@ resources:
                 sap.cloud.service: fiori.service
                 html5-apps-repo.app_host_id: 183a151f-6bf3-44e5-8dba-31b1e6ecae29
 
-
-              # # =========================
-              # # DISPLAY GL V LOOKUP
-              # # =========================
-              # - Name: displayglvlookup-html5
-              #   Type: HTTP
-              #   ProxyType: Internet
-              #   URL: https://ui5.sap.com
-              #   Authentication: NoAuthentication
-              #   HTML5.ForwardAuthToken: true
-              #   html5-apps-repo.app_host_id: 183a151f-6bf3-44e5-8dba-31b1e6ecae29
-
-
-              # =========================
-              # MASTER BP UPLOAD
-              # =========================
               - Name: masterbpupload-html5
                 Type: HTTP
                 ProxyType: Internet
@@ -294,6 +239,16 @@ resources:
                 html5-apps-repo.app_host_id: 183a151f-6bf3-44e5-8dba-31b1e6ecae29
 
         version: 1.0.0
+
+
+  # =========================
+  # EXISTING JOB SCHEDULER
+  # =========================
+  - name: mobi_job_scheduler
+    type: org.cloudfoundry.existing-service
+
+    parameters:
+      service-name: mobi_job_dev
 
 
   # =========================
@@ -315,7 +270,10 @@ resources:
     parameters:
       service-name: smtp-mobi-destination
 
-
+  - name: s4hana-mobi-destination
+    type: org.cloudfoundry.existing-service
+    parameters:
+      service-name: s4hana-mobi-destination
 parameters:
   deploy_mode: html5-repo
   enable-parallel-deployments: true

@@ -160,6 +160,26 @@ class MailNotificationService {
     return this._send({ subject, html, attachments });
   }
 
+  /**
+   * Category 3: SAP journal-entry reversal synchronization summary.
+   * This follows the same best-effort SMTP pattern as payin, payout and
+   * domestic-settlement consolidation mails.
+   */
+  async sendReversalSummary({
+    result = {},
+    executionTime
+  } = {}) {
+    const failed = Number(result.failed || 0);
+    const outcome = failed > 0 ? 'ERROR' : 'SUCCESS';
+    const built = templates.buildReversalSummaryMail({
+      environment: this.environment,
+      executionTime: executionTime || formatTimestamp(),
+      result,
+      outcome
+    });
+    return this._send({ subject: built.subject, html: built.html, attachments: [] });
+  }
+
   /** Red "run failed" mail for unexpected exceptions (no processing summary available). */
   async sendRunFailureMail({
     interfaceName = 'MOBI Integration',

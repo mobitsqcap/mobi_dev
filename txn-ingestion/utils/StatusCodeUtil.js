@@ -77,6 +77,7 @@ const STATUS = Object.freeze({
   // NEW: txn_paid_date consistency (2026-08-18)
   '064': 'INVALID_TXN_PAID_DATE',
   '065': 'INVALID_BALANCE_CHECK',
+  '066': 'REVERSED',
   '100': 'UNKNOWN_ERROR'
 });
 

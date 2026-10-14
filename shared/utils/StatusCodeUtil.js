@@ -94,6 +94,7 @@ const STATUS = Object.freeze({
   '062': 'POSTING_FAILED',
   '063': 'BP_CREATED_SUCCESS',
   '064': 'NO_MASTER_DATA_FOUND',
+  '066': 'REVERSED',
 
   '100': 'UNKNOWN_ERROR'
 });

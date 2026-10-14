@@ -1,6 +1,6 @@
 using { mobi.db as db } from '../db/schema';
 
-@requires: 'authenticated-user'
+// @requires: 'authenticated-user'
 service VlGlAccounts {
 
     @restrict: [

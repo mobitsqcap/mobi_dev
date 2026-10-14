@@ -2,6 +2,8 @@
 
 const transactionPattern = process.env.TRANSACTION_FILE_PATTERN || '^Transactions_\\d{8}\\.csv$';
 const transactionRetryPattern = process.env.TRANSACTION_RETRY_FILE_PATTERN || '^Transactions_\\d{8}_Updated\\.csv$';
+const transactionReversalPattern = process.env.TRANSACTION_REVERSAL_FILE_PATTERN || '^Transactions_\\d{8}_Reversal\\.csv$';
+const transactionReversalRetryPattern = process.env.TRANSACTION_REVERSAL_RETRY_FILE_PATTERN || '^Transactions_\\d{8}_Reversal_Updated\\.csv$';
 
 const aliases = (...values) => new Set(values.map((v) => String(v).trim().toUpperCase()));
 const TRANSACTION_ROOT = 'Transaction_Data';
@@ -34,7 +36,9 @@ module.exports = Object.freeze({
 
   FILES: {
     TRANSACTION_REGEX: new RegExp(transactionPattern, 'i'),
-    TRANSACTION_RETRY_REGEX: new RegExp(transactionRetryPattern, 'i')
+    TRANSACTION_RETRY_REGEX: new RegExp(transactionRetryPattern, 'i'),
+    TRANSACTION_REVERSAL_REGEX: new RegExp(transactionReversalPattern, 'i'),
+    TRANSACTION_REVERSAL_RETRY_REGEX: new RegExp(transactionReversalRetryPattern, 'i')
   },
 
   ROW_STATUS: Object.freeze({ VALID: 'VALID', INVALID: 'INVALID' }),

@@ -71,7 +71,7 @@ class DateUtil {
   static nowHCMSS() { return this.nowHHMMSS(); }
 
   static extractDate8(fileName) {
-    const match = String(fileName || '').match(/_(\d{8})(?:_(?:ERRORS|Updated))?\.csv$/i);
+    const match = String(fileName || '').match(/_(\d{8})(?:_(?:Reversal(?:_(?:ERRORS|Updated))?|ERRORS|Updated))?\.csv$/i);
     return match ? match[1] : null;
   }
 
